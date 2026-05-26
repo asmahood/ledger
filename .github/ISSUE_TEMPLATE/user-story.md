@@ -31,26 +31,6 @@ _Optional: wireframe links, UI decisions, edge cases to handle._
 
 ---
 
-## 🔗 Dependencies / Related Issues
-
-_List any issues this story depends on or is blocked by._
-
-- Depends on: #
-- Related to: #
-
----
-
-## 📊 Metadata
-
-| Field           | Value                                      |
-|-----------------|--------------------------------------------|
-| Epic            | <!-- e.g. Budget Management, Reporting --> |
-| Priority        | <!-- 🔴 High / 🟡 Medium / 🟢 Low -->     |
-| Effort Estimate | <!-- XS / S / M / L / XL -->               |
-| Target Release  | <!-- v0.1 MVP / v0.2 / etc. -->            |
-
----
-
 ## ✅ Definition of Done
 
 - [ ] Acceptance criteria all pass
