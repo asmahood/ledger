@@ -10,22 +10,34 @@ Closes #
 
 ---
 
-## ✅ Checklist
+## 🏷️ Type of Change
 
-- [ ] Code compiles and syncs without errors
-- [ ] No regressions in existing functionality
-- [ ] Self-reviewed the diff
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Refactor
+- [ ] Dependency update
+- [ ] Documentation
+- [ ] CI / configuration
 
 ---
 
 ## 🧪 Testing
 
-_How was this tested? (e.g. manual smoke test, unit tests, instrumented tests)_
+_How was this tested?_
 
 -
 
 ---
 
+## ✅ Pre-merge Checklist
+
+- [ ] Compiles and syncs without errors
+- [ ] Tested on device or emulator
+- [ ] No regressions in existing functionality
+- [ ] Self-reviewed the diff
+
+---
+
 ## 📸 Screenshots / Recordings
 
-_If applicable, add screenshots or screen recordings for UI changes._
+_If applicable, add screenshots or recordings for UI changes._
