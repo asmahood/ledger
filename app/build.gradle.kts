@@ -56,7 +56,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
-    testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.room.testing)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -68,7 +68,6 @@ dependencies {
     androidTestImplementation(libs.androidx.navigation.testing)
 
     // Vico
-    implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
 
     // Coroutines
