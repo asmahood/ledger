@@ -6,13 +6,13 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "io.github.asmahood.ledger"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.asmahood.ledger"
@@ -21,7 +21,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "dagger.hilt.android.testing.HiltTestRunner"
     }
 
     buildTypes {
