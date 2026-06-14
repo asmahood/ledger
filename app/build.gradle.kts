@@ -6,13 +6,13 @@ plugins {
     alias(libs.plugins.serialization)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "io.github.asmahood.ledger"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.asmahood.ledger"
