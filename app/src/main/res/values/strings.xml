@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Ledger</string>
+    <string name="overview">Overview</string>
+    <string name="transactions">Transactions</string>
+    <string name="manage">Manage</string>
+    <string name="fab_desc">Add a new transaction</string>
 </resources>
