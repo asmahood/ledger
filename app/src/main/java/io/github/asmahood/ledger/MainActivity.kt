@@ -4,14 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.asmahood.ledger.ui.navigation.FAB
+import io.github.asmahood.ledger.ui.navigation.LedgerBottomBar
+import io.github.asmahood.ledger.ui.navigation.LedgerNavHost
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 
 @AndroidEntryPoint
@@ -20,30 +22,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LedgerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+            LedgerApp()
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun LedgerApp(modifier: Modifier = Modifier) {
+    val navController = rememberNavController()
+    LedgerTheme {
+        Scaffold(
+            bottomBar = { LedgerBottomBar(navController = navController) },
+            floatingActionButton = { FAB(onClick = {}) },
+            modifier = modifier
+        ) { contentPadding ->
+            LedgerNavHost(navController = navController, modifier = Modifier.padding(contentPadding))
+        }
+    }
 }
 
-@Preview(showBackground = true)
+@PreviewLightDark
 @Composable
-fun GreetingPreview() {
-    LedgerTheme {
-        Greeting("Android")
-    }
+private fun LedgerAppPreview() {
+    LedgerApp()
 }
