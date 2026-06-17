@@ -9,6 +9,9 @@ local.properties
 *.log
 .DS_Store
 
+# Editor backup files
+*~
+
 # Android Studio generated files and folders
 captures/
 .externalNativeBuild/
