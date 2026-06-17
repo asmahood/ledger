@@ -25,6 +25,11 @@ data class TransactionEntity(
     val vendor: String,
 
     /**
+     * The type of transaction (either EXPENSE or INCOME)
+     */
+    val type: String,
+
+    /**
      * Additional context with the transaction
      */
     val notes: String?,

@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.asmahood.ledger.data.db.LedgerDatabase
+import io.github.asmahood.ledger.data.db.dao.CategoryDao
 import javax.inject.Singleton
 
 @Module
@@ -24,4 +25,7 @@ object DatabaseModule {
             .fallbackToDestructiveMigration(true)
             .build()
     }
+
+    @Provides
+    fun provideCategoryDao(db: LedgerDatabase): CategoryDao = db.categoryDao()
 }
