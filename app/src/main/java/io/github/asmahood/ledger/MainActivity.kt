@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -30,13 +31,23 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LedgerApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+
     LedgerTheme {
         Scaffold(
             bottomBar = { LedgerBottomBar(navController = navController) },
             floatingActionButton = { FAB(onClick = {}) },
             modifier = modifier
         ) { contentPadding ->
-            LedgerNavHost(navController = navController, modifier = Modifier.padding(contentPadding))
+            // The shell handles the bottom edge (bottom bar + nav-bar inset). We pad
+            // the NavHost by that, and consumeWindowInsets tells each screen's own
+            // Scaffold those insets are already handled — so their top bars don't
+            // re-apply the status-bar inset and double the top padding.
+            LedgerNavHost(
+                navController = navController,
+                modifier = Modifier
+                    .padding(contentPadding)
+                    .consumeWindowInsets(contentPadding)
+            )
         }
     }
 }
