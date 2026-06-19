@@ -10,4 +10,11 @@
     <string name="income">Income</string>
     <string name="manage_loading_desc">Loading categories</string>
     <string name="manage_error_title">Couldn\'t load categories</string>
+    <string name="add_category">Add Category</string>
+    <string name="expense">Expense</string>
+    <string name="back">Back</string>
+    <string name="name">Name</string>
+    <string name="description">Description</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 </resources>

@@ -17,11 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -58,24 +58,35 @@ import io.github.asmahood.ledger.util.formatCurrency
 
 @Composable
 fun ManageScreen(
+    onAddCategoryClicked: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ManageViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ManageScreen(uiState = uiState, modifier = modifier)
+    ManageScreen(
+        onAddCategoryClicked = onAddCategoryClicked,
+        uiState = uiState,
+        modifier = modifier
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageScreen(uiState: ManageUiState, modifier: Modifier = Modifier) {
+fun ManageScreen(
+    uiState: ManageUiState,
+    onAddCategoryClicked: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             LedgerTopBar(
                 title = stringResource(R.string.manage_app_bar_title),
                 actions = {
-                    Button(onClick = { /* TODO: navigate to add category */ }) {
-                        Icon(painter = painterResource(R.drawable.add), contentDescription = null)
-                        Text(text = stringResource(R.string.manage_add))
+                    FilledIconButton(onClick = onAddCategoryClicked) {
+                        Icon(
+                            painter = painterResource(R.drawable.add),
+                            contentDescription = stringResource(R.string.add_category)
+                        )
                     }
                 },
             )
@@ -85,7 +96,11 @@ fun ManageScreen(uiState: ManageUiState, modifier: Modifier = Modifier) {
         val contentModifier = Modifier.padding(contentPadding)
         when (uiState) {
             is ManageUiState.Loading -> LoadingState(contentModifier)
-            is ManageUiState.Error -> ErrorState(message = uiState.message, modifier = contentModifier)
+            is ManageUiState.Error -> ErrorState(
+                message = uiState.message,
+                modifier = contentModifier
+            )
+
             is ManageUiState.Success -> {
                 CategoryList(uiState.expenseCategories, uiState.incomeCategories, contentModifier)
             }
