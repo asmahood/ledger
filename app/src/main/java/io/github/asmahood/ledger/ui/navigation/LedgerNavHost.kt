@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.navigation
 
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -21,6 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.asmahood.ledger.R
 import io.github.asmahood.ledger.ui.manage.ManageScreen
+import io.github.asmahood.ledger.ui.manage.category.CategoryFormScreen
 import io.github.asmahood.ledger.ui.overview.OverviewScreen
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 import io.github.asmahood.ledger.ui.transaction.TransactionScreen
@@ -42,7 +44,14 @@ fun LedgerNavHost(
             TransactionScreen()
         }
         composable(route = Screen.Manage.route) {
-            ManageScreen()
+            ManageScreen(
+                onAddCategoryClicked = { navController.navigate(Screen.AddCategory.route) }
+            )
+        }
+        composable(route = Screen.AddCategory.route) {
+            CategoryFormScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
         }
     }
 }
@@ -61,8 +70,10 @@ fun LedgerTopBar(
     title: String,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
+    navigationIcon: @Composable (() -> Unit) = {},
 ) {
-    TopAppBar(
+    CenterAlignedTopAppBar(
+        navigationIcon = navigationIcon,
         title = { Text(text = title) },
         actions = actions,
         modifier = modifier
@@ -91,7 +102,7 @@ fun LedgerBottomBar(
                 },
                 icon = {
                     Icon(
-                        painter = painterResource(if (isSelected) screen.iconActive else screen.icon),
+                        painter = painterResource(if (isSelected) screen.iconActive!! else screen.icon!!),
                         contentDescription = stringResource(screen.title)
                     )
                 },
