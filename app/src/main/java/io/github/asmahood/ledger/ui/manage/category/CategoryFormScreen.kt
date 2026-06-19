@@ -16,37 +16,79 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.asmahood.ledger.R
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 
 @Composable
-fun CategoryFormScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier) {
-    val options = listOf(stringResource(R.string.expense), stringResource(R.string.income))
+fun CategoryFormScreen(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: CategoryFormViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedType by remember { mutableIntStateOf(0) }
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    CategoryFormContent(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onNameChange = viewModel::updateName,
+        onDescriptionChange = viewModel::updateDescription,
+        onTypeChange = viewModel::updateType,
+        onSave = viewModel::saveCategory,
+        onNavigateBack = onNavigateBack,
+        modifier = modifier
+    )
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    CategoryFormEvent.SavedSuccessfully -> onNavigateBack()
+                    is CategoryFormEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryFormContent(
+    uiState: CategoryFormUiState,
+    snackbarHostState: SnackbarHostState,
+    onNameChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onTypeChange: (TransactionType) -> Unit,
+    onSave: () -> Unit,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             LedgerTopBar(
                 title = stringResource(R.string.add_category),
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack)  {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(R.drawable.arrow_back),
                             contentDescription = stringResource(R.string.back)
@@ -55,6 +97,7 @@ fun CategoryFormScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier
     ) { contentPadding ->
         Column(
@@ -66,34 +109,36 @@ fun CategoryFormScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier
 
         ) {
             SingleChoiceSegmentedButtonRow {
-                options.forEachIndexed { index, label ->
+                TransactionType.entries.forEachIndexed { index, type ->
                     SegmentedButton(
                         shape = SegmentedButtonDefaults.itemShape(
                             index = index,
-                            count = options.size
+                            count = TransactionType.entries.size
                         ),
-                        onClick = { selectedType = index },
-                        selected = index == selectedType,
-                        label = { Text(label) }
+                        onClick = { onTypeChange(type) },
+                        selected = type == uiState.type,
+                        label = { Text(text = stringResource(type.label)) }
                     )
                 }
             }
 
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
+                value = uiState.name,
+                onValueChange = onNameChange,
                 label = { Text(stringResource(R.string.name)) },
             )
 
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = uiState.description,
+                onValueChange = onDescriptionChange,
                 label = { Text(stringResource(R.string.description)) }
             )
 
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 OutlinedButton(
                     onClick = onNavigateBack,
                     modifier = Modifier
@@ -104,7 +149,8 @@ fun CategoryFormScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 FilledTonalButton(
-                    onClick = { /* TODO: save via viewModel, then navigate back */ },
+                    onClick = onSave,
+                    enabled = uiState.isFormValid,
                     modifier = Modifier.fillMaxWidth(0.5f)
                 ) {
                     Text(stringResource(R.string.save))
@@ -117,8 +163,20 @@ fun CategoryFormScreen(onNavigateBack: () -> Unit, modifier: Modifier = Modifier
 
 @PreviewLightDark
 @Composable
-fun CategoryFormScreenComposable() {
+fun CategoryFormContentComposable() {
     LedgerTheme {
-        CategoryFormScreen(onNavigateBack = {})
+        CategoryFormContent(
+            uiState = CategoryFormUiState(
+                name = "Groceries",
+                type = TransactionType.EXPENSE,
+                description = "Purchase from grocery stores"
+            ),
+            snackbarHostState = remember { SnackbarHostState() },
+            onNameChange = {},
+            onDescriptionChange = {},
+            onTypeChange = {},
+            onSave = {},
+            onNavigateBack = {}
+        )
     }
 }
