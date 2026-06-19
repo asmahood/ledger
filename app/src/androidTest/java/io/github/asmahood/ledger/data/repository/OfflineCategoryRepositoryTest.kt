@@ -42,7 +42,7 @@ class OfflineCategoryRepositoryTest {
             Category(id = 0, name = "Groceries", type = TransactionType.EXPENSE, description = "Food"),
         )
 
-        val all = repository.getAlLCategoriesStream().first()
+        val all = repository.getAllCategoriesStream().first()
         assertEquals(1, all.size)
         val stored = all.first()
         assertEquals("Groceries", stored.name)

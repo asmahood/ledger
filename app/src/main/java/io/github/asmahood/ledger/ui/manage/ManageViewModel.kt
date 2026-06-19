@@ -17,7 +17,7 @@ import javax.inject.Inject
 class ManageViewModel @Inject constructor(
     private val repository: CategoryRepository,
 ) : ViewModel() {
-    val uiState: StateFlow<ManageUiState> = repository.getAlLCategoriesStream()
+    val uiState: StateFlow<ManageUiState> = repository.getAllCategoriesStream()
         .map<List<Category>, ManageUiState> { categories ->
             val (expenses, income) = categories.partition { it.type == TransactionType.EXPENSE }
             ManageUiState.Success(expenses, income)

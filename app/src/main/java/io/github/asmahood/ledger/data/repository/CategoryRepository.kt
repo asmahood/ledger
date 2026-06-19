@@ -16,7 +16,7 @@ import javax.inject.Inject
 class DuplicateCategoryException(message: String) : Exception(message)
 
 interface CategoryRepository {
-    fun getAlLCategoriesStream(): Flow<List<Category>>
+    fun getAllCategoriesStream(): Flow<List<Category>>
     fun getCategoryStream(id: Long): Flow<Category?>
     suspend fun insertCategory(category: Category)
     suspend fun updateCategory(category: Category)
@@ -24,7 +24,7 @@ interface CategoryRepository {
 }
 
 class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao) : CategoryRepository {
-    override fun getAlLCategoriesStream(): Flow<List<Category>> {
+    override fun getAllCategoriesStream(): Flow<List<Category>> {
         return dao.getAllCategories().map { entities -> entities.map { it.toModel() } }
     }
 

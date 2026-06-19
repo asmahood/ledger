@@ -7,8 +7,9 @@ data class CategoryFormUiState(
     val name: String = "",
     val description: String = "",
     val type: TransactionType = TransactionType.EXPENSE,
-    val isFormValid: Boolean = false
-)
+) {
+    val isFormValid: Boolean get() = name.isNotBlank()
+}
 
 fun CategoryFormUiState.toCategory(): Category {
     return Category(
