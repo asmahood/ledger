@@ -10,6 +10,11 @@ import dagger.hilt.components.SingletonComponent
 import io.github.asmahood.ledger.data.db.LedgerDatabase
 import javax.inject.Singleton
 
+/**
+ * Provides the [LedgerDatabase] instance only. DAOs are provided separately by [DaoModule] so that
+ * instrumented tests can swap in an in-memory database (replacing just this module) without having
+ * to re-declare every DAO. See `TestDatabaseModule` in androidTest.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {

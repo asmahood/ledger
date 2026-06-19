@@ -7,8 +7,8 @@ import io.github.asmahood.ledger.R
 sealed class Screen(
     val route: String,
     @StringRes val title: Int,
-    @DrawableRes val icon: Int,
-    @DrawableRes val iconActive: Int,
+    @DrawableRes val icon: Int? = null,
+    @DrawableRes val iconActive: Int? = null,
 ) {
     data object Overview : Screen(
         route = "overview",
@@ -31,7 +31,14 @@ sealed class Screen(
         iconActive = R.drawable.tune_filled,
     )
 
+    data object AddCategory : Screen(
+        route = "addCategory",
+        title = R.string.add_category,
+    )
+
     companion object {
         val tabs: List<Screen> by lazy { listOf(Overview, Transactions, Manage) }
+        val fullScreenRoutes: Set<String> by lazy { setOf(AddCategory.route) }
+        val routesWithFAB: Set<String> by lazy { setOf(Overview.route, Transactions.route) }
     }
 }
