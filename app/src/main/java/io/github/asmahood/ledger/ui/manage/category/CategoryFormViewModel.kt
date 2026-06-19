@@ -22,29 +22,23 @@ class CategoryFormViewModel @Inject constructor(private val repository: Category
     private val _events = Channel<CategoryFormEvent>()
     val events = _events.receiveAsFlow()
 
+    private var isSaving = false
+
     fun updateName(value: String) {
-        _uiState.update { current ->
-            val updated = current.copy(name = value)
-            updated.copy(isFormValid = validateInput(updated))
-        }
+        _uiState.update { it.copy(name = value) }
     }
 
     fun updateDescription(value: String) {
-        _uiState.update { current ->
-            val updated = current.copy(description = value)
-            updated.copy(isFormValid = validateInput(updated))
-        }
+        _uiState.update { it.copy(description = value) }
     }
 
     fun updateType(value: TransactionType) {
-        _uiState.update { current ->
-            val updated = current.copy(type = value)
-            updated.copy(isFormValid = validateInput(updated))
-        }
+        _uiState.update { it.copy(type = value) }
     }
 
     fun saveCategory() {
-        if (!_uiState.value.isFormValid) return
+        if (!_uiState.value.isFormValid || isSaving) return
+        isSaving = true
 
         viewModelScope.launch {
             try {
@@ -52,10 +46,9 @@ class CategoryFormViewModel @Inject constructor(private val repository: Category
                 _events.send(CategoryFormEvent.SavedSuccessfully)
             } catch (e: DuplicateCategoryException) {
                 _events.send(CategoryFormEvent.ShowError(e.message ?: "Could not save category"))
+            } finally {
+                isSaving = false
             }
         }
-    }
-    private fun validateInput(state: CategoryFormUiState): Boolean {
-        return state.name.isNotBlank()
     }
 }

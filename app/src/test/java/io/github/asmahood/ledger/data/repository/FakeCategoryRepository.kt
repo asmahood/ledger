@@ -27,7 +27,7 @@ class FakeCategoryRepository : CategoryRepository {
         categories.value = values
     }
 
-    override fun getAlLCategoriesStream(): Flow<List<Category>> =
+    override fun getAllCategoriesStream(): Flow<List<Category>> =
         streamError?.let { error -> flow<List<Category>> { throw error } } ?: categories
 
     override fun getCategoryStream(id: Long): Flow<Category?> =
