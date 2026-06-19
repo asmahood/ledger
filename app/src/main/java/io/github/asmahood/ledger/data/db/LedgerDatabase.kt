@@ -9,7 +9,7 @@ import io.github.asmahood.ledger.data.db.entity.TransactionEntity
 
 @Database(
     entities = [TransactionEntity::class, CategoryEntity::class, BudgetEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class LedgerDatabase : RoomDatabase() {
