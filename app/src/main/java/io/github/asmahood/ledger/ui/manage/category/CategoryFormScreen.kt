@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -19,10 +21,13 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -55,6 +60,7 @@ fun CategoryFormScreen(
         onDescriptionChange = viewModel::updateDescription,
         onTypeChange = viewModel::updateType,
         onSave = viewModel::saveCategory,
+        onDelete = viewModel::deleteCategory,
         onNavigateBack = onNavigateBack,
         modifier = modifier
     )
@@ -81,12 +87,15 @@ fun CategoryFormContent(
     onTypeChange: (TransactionType) -> Unit,
     onSave: () -> Unit,
     onNavigateBack: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             LedgerTopBar(
-                title = stringResource(R.string.add_category),
+                title = stringResource(if (uiState.id != 0L) R.string.edit_category else R.string.add_category),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -95,6 +104,19 @@ fun CategoryFormContent(
                         )
                     }
                 },
+                actions = {
+                    if (uiState.id != 0L) {
+                        OutlinedIconButton(
+                            onClick = { showDeleteDialog = true }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = stringResource(R.string.delete)
+                            )
+                        }
+                    }
+
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -157,7 +179,28 @@ fun CategoryFormContent(
                 }
             }
         }
-
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text(text = stringResource(R.string.delete_category_title, uiState.name)) },
+                text = { Text(text = stringResource(R.string.delete_category_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            onDelete()
+                        }
+                    ) {
+                        Text(text = stringResource(R.string.delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text(text = stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -176,7 +219,30 @@ fun CategoryFormContentComposable() {
             onDescriptionChange = {},
             onTypeChange = {},
             onSave = {},
-            onNavigateBack = {}
+            onNavigateBack = {},
+            onDelete = {}
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+fun CategoryFormContentEditComposable() {
+    LedgerTheme {
+        CategoryFormContent(
+            uiState = CategoryFormUiState(
+                id = 1,
+                name = "Groceries",
+                type = TransactionType.EXPENSE,
+                description = "Purchase from grocery stores"
+            ),
+            snackbarHostState = remember { SnackbarHostState() },
+            onNameChange = {},
+            onDescriptionChange = {},
+            onTypeChange = {},
+            onSave = {},
+            onNavigateBack = {},
+            onDelete = {}
         )
     }
 }

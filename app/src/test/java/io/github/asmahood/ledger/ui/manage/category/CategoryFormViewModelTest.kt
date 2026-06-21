@@ -1,6 +1,8 @@
 package io.github.asmahood.ledger.ui.manage.category
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.asmahood.ledger.data.model.Category
 import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.DuplicateCategoryException
 import io.github.asmahood.ledger.data.repository.FakeCategoryRepository
@@ -18,7 +20,20 @@ class CategoryFormViewModelTest {
     val dispatcherRule = TestDispatcherRule()
 
     private val repository = FakeCategoryRepository()
-    private val viewModel = CategoryFormViewModel(repository)
+
+    // Add-mode ViewModel (no categoryId in SavedStateHandle).
+    private val viewModel = CategoryFormViewModel(repository, SavedStateHandle())
+
+    // Creates an edit-mode ViewModel pre-loaded with an existing category.
+    private fun editViewModel(category: Category): CategoryFormViewModel {
+        repository.setCategories(listOf(category))
+        return CategoryFormViewModel(
+            repository,
+            SavedStateHandle(mapOf("categoryId" to category.id))
+        )
+    }
+
+    // ── Add mode ────────────────────────────────────────────────────────────────
 
     @Test
     fun formViewModel_initialState_emptyAndInvalid() {
@@ -115,5 +130,140 @@ class CategoryFormViewModelTest {
             )
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Edit mode ───────────────────────────────────────────────────────────────
+
+    @Test
+    fun editMode_initialState_prePopulatesFromRepository() {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE, description = "Food")
+        val vm = editViewModel(category)
+
+        val state = vm.uiState.value
+        assertEquals(5L, state.id)
+        assertEquals("Groceries", state.name)
+        assertEquals("Food", state.description)
+        assertEquals(TransactionType.EXPENSE, state.type)
+    }
+
+    @Test
+    fun editMode_initialState_nullDescription_mapsToEmptyString() {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE, description = null)
+        val vm = editViewModel(category)
+
+        assertEquals("", vm.uiState.value.description)
+    }
+
+    @Test
+    fun editMode_save_callsUpdateNotInsert() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.saveCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(repository.updated.isNotEmpty())
+        assertTrue(repository.inserted.isEmpty())
+    }
+
+    @Test
+    fun editMode_save_updatesWithCorrectId() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.saveCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(5L, repository.updated.single().id)
+    }
+
+    @Test
+    fun editMode_save_emitsSavedSuccessfully() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.saveCategory()
+            assertEquals(CategoryFormEvent.SavedSuccessfully, awaitItem())
+        }
+    }
+
+    @Test
+    fun editMode_save_duplicateName_emitsShowError() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        repository.updateError = DuplicateCategoryException("A category named \"Groceries\" already exists")
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.saveCategory()
+
+            val event = awaitItem()
+            assertTrue(event is CategoryFormEvent.ShowError)
+            assertEquals(
+                "A category named \"Groceries\" already exists",
+                (event as CategoryFormEvent.ShowError).message,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun editMode_categoryNotFound_emitsSavedSuccessfully() = runTest {
+        // Category absent from repo — simulates deletion between navigation and ViewModel creation.
+        val vm = CategoryFormViewModel(
+            repository,
+            SavedStateHandle(mapOf("categoryId" to 99L))
+        )
+
+        vm.events.test {
+            assertEquals(CategoryFormEvent.SavedSuccessfully, awaitItem())
+        }
+    }
+
+    // ── Delete ──────────────────────────────────────────────────────────────────
+
+    @Test
+    fun deleteCategory_emitsSavedSuccessfully() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.deleteCategory()
+            assertEquals(CategoryFormEvent.SavedSuccessfully, awaitItem())
+        }
+    }
+
+    @Test
+    fun deleteCategory_exception_emitsShowError() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        repository.deleteError = RuntimeException("FK constraint")
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.deleteCategory()
+            assertTrue(awaitItem() is CategoryFormEvent.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun deleteCategory_callsRepositoryDeleteWithCorrectId() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        vm.events.test {
+            vm.deleteCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(1, repository.deleted.size)
+        assertEquals(5L, repository.deleted.single().id)
     }
 }
