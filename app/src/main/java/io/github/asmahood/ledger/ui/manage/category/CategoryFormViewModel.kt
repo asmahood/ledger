@@ -1,5 +1,6 @@
 package io.github.asmahood.ledger.ui.manage.category
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,20 +10,52 @@ import io.github.asmahood.ledger.data.repository.DuplicateCategoryException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class CategoryFormViewModel @Inject constructor(private val repository: CategoryRepository) : ViewModel() {
+class CategoryFormViewModel @Inject constructor(
+    private val repository: CategoryRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
     private val _uiState = MutableStateFlow(CategoryFormUiState())
     val uiState = _uiState.asStateFlow()
 
     private val _events = Channel<CategoryFormEvent>()
     val events = _events.receiveAsFlow()
 
+    private val categoryId: Long? = savedStateHandle["categoryId"]
+
     private var isSaving = false
+    private var isLoading = false
+
+    init {
+        if (categoryId != null) {
+            isLoading = true
+            viewModelScope.launch {
+                try {
+                    val category = repository.getCategoryStream(categoryId).first()
+                    if (category != null) {
+                        _uiState.update {
+                            it.copy(
+                                id = category.id,
+                                name = category.name,
+                                description = category.description ?: "",
+                                type = category.type,
+                            )
+                        }
+                    } else {
+                        _events.send(CategoryFormEvent.SavedSuccessfully)
+                    }
+                } finally {
+                    isLoading = false
+                }
+            }
+        }
+    }
 
     fun updateName(value: String) {
         _uiState.update { it.copy(name = value) }
@@ -37,15 +70,34 @@ class CategoryFormViewModel @Inject constructor(private val repository: Category
     }
 
     fun saveCategory() {
-        if (!_uiState.value.isFormValid || isSaving) return
+        if (!_uiState.value.isFormValid || isSaving || isLoading) return
         isSaving = true
 
         viewModelScope.launch {
             try {
-                repository.insertCategory(_uiState.value.toCategory())
+                if (categoryId == null) {
+                    repository.insertCategory(_uiState.value.toCategory())
+                } else {
+                    repository.updateCategory(_uiState.value.toCategory())
+                }
                 _events.send(CategoryFormEvent.SavedSuccessfully)
             } catch (e: DuplicateCategoryException) {
                 _events.send(CategoryFormEvent.ShowError(e.message ?: "Could not save category"))
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
+    fun deleteCategory() {
+        if (isSaving || isLoading) return
+        isSaving = true
+        viewModelScope.launch {
+            try {
+                repository.deleteCategory(_uiState.value.toCategory())
+                _events.send(CategoryFormEvent.SavedSuccessfully)
+            } catch (e: Exception) {
+                _events.send(CategoryFormEvent.ShowError(e.message ?: "Could not delete category"))
             } finally {
                 isSaving = false
             }

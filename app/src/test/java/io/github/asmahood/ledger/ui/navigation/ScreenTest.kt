@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.navigation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScreenTest {
@@ -17,5 +18,16 @@ class ScreenTest {
     fun tabs_routesAreUnique() {
         val routes = Screen.tabs.map { it.route }
         assertEquals("Each tab must have a unique route", routes.distinct().size, routes.size)
+    }
+
+    @Test
+    fun fullScreenRoutes_containsAddAndEditCategory() {
+        assertTrue(Screen.fullScreenRoutes.contains(Screen.AddCategory.route))
+        assertTrue(Screen.fullScreenRoutes.contains(Screen.EditCategory.route))
+    }
+
+    @Test
+    fun editCategory_routeContainsCategoryIdArgument() {
+        assertTrue(Screen.EditCategory.route.contains("{categoryId}"))
     }
 }
