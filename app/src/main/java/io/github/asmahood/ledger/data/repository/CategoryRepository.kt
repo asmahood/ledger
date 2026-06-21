@@ -23,7 +23,8 @@ interface CategoryRepository {
     suspend fun deleteCategory(category: Category)
 }
 
-class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao) : CategoryRepository {
+class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao) :
+    CategoryRepository {
     override fun getAllCategoriesStream(): Flow<List<Category>> {
         return dao.getAllCategories().map { entities -> entities.map { it.toModel() } }
     }
@@ -41,7 +42,11 @@ class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao
     }
 
     override suspend fun updateCategory(category: Category) {
-        return dao.update(category.toEntity())
+        try {
+            return dao.update(category.toEntity())
+        } catch (e: SQLiteConstraintException) {
+            throw DuplicateCategoryException("A category named \"${category.name}\" already exists")
+        }
     }
 
     override suspend fun deleteCategory(category: Category) {

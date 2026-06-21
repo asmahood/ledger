@@ -4,6 +4,7 @@ import io.github.asmahood.ledger.data.model.Category
 import io.github.asmahood.ledger.data.model.TransactionType
 
 data class CategoryFormUiState(
+    val id: Long = 0,
     val name: String = "",
     val description: String = "",
     val type: TransactionType = TransactionType.EXPENSE,
@@ -13,7 +14,7 @@ data class CategoryFormUiState(
 
 fun CategoryFormUiState.toCategory(): Category {
     return Category(
-        id = 0,
+        id = this.id,
         name = this.name,
         type = this.type,
         description = this.description.ifBlank { null }

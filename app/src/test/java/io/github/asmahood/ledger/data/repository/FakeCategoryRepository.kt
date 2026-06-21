@@ -22,6 +22,8 @@ class FakeCategoryRepository : CategoryRepository {
 
     var streamError: Throwable? = null
     var insertError: Throwable? = null
+    var updateError: Throwable? = null
+    var deleteError: Throwable? = null
 
     fun setCategories(values: List<Category>) {
         categories.value = values
@@ -40,10 +42,13 @@ class FakeCategoryRepository : CategoryRepository {
     }
 
     override suspend fun updateCategory(category: Category) {
+        updateError?.let { throw it }
         updated += category
+        categories.value = categories.value.map { if (it.id == category.id) category else it }
     }
 
     override suspend fun deleteCategory(category: Category) {
+        deleteError?.let { throw it }
         deleted += category
     }
 }

@@ -33,4 +33,11 @@ class CategoryFormUiStateTest {
         assertEquals(TransactionType.INCOME, category.type)
         assertEquals("Monthly pay", category.description)
     }
+
+    @Test
+    fun toCategory_withNonZeroId_preservesId() {
+        val state = CategoryFormUiState(id = 42L, name = "Salary", type = TransactionType.INCOME)
+
+        assertEquals(42L, state.toCategory().id)
+    }
 }
