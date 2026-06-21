@@ -2,9 +2,23 @@ package io.github.asmahood.ledger.data.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.time.LocalDate
 
-@Entity(tableName = "transactions")
+@Entity(
+    tableName = "transactions",
+    foreignKeys = [
+        ForeignKey(
+            CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["category_id"],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index("category_id")]
+)
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -15,9 +29,9 @@ data class TransactionEntity(
     val amount: Double,
 
     /**
-     * The date the transaction occurred as an EPOCH timestamp
+     * The date the transaction occurred
      */
-    val date: Long,
+    val date: LocalDate,
 
     /**
      * The vendor/source of the transaction

@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.asmahood.ledger.data.db.LedgerDatabase
 import io.github.asmahood.ledger.data.db.dao.CategoryDao
+import io.github.asmahood.ledger.data.db.dao.TransactionDao
 
 /**
  * Provides each DAO from the bound [LedgerDatabase]. Kept separate from [DatabaseModule] so the
@@ -17,4 +18,7 @@ import io.github.asmahood.ledger.data.db.dao.CategoryDao
 object DaoModule {
     @Provides
     fun provideCategoryDao(database: LedgerDatabase): CategoryDao = database.categoryDao()
+
+    @Provides
+    fun provideTransactionDao(database: LedgerDatabase): TransactionDao = database.transactionDao()
 }

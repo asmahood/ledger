@@ -1,0 +1,30 @@
+package io.github.asmahood.ledger.data.mapper
+
+import io.github.asmahood.ledger.data.db.entity.TransactionEntity
+import io.github.asmahood.ledger.data.db.relation.TransactionWithCategory
+import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.model.TransactionType
+
+fun TransactionWithCategory.toModel(): Transaction {
+    return Transaction(
+        id = transaction.id,
+        amount = transaction.amount,
+        date = transaction.date,
+        vendor = transaction.vendor,
+        type = TransactionType.valueOf(transaction.type),
+        notes = transaction.notes,
+        category = category.toModel()
+    )
+}
+
+fun Transaction.toEntity(): TransactionEntity {
+    return TransactionEntity(
+        id = id,
+        amount = amount,
+        date = date,
+        vendor = vendor,
+        type = type.toString(),
+        notes = notes,
+        categoryId = category.id
+    )
+}
