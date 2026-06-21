@@ -57,14 +57,16 @@ import io.github.asmahood.ledger.ui.theme.LedgerTheme
 import io.github.asmahood.ledger.util.formatCurrency
 
 @Composable
-fun ManageScreen(
+fun ManageScreenContent(
     onAddCategoryClicked: () -> Unit,
+    onCategoryClicked: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ManageViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    ManageScreen(
+    ManageScreenContent(
         onAddCategoryClicked = onAddCategoryClicked,
+        onCategoryClicked = onCategoryClicked,
         uiState = uiState,
         modifier = modifier
     )
@@ -72,9 +74,10 @@ fun ManageScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageScreen(
+fun ManageScreenContent(
     uiState: ManageUiState,
     onAddCategoryClicked: () -> Unit,
+    onCategoryClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -102,7 +105,12 @@ fun ManageScreen(
             )
 
             is ManageUiState.Success -> {
-                CategoryList(uiState.expenseCategories, uiState.incomeCategories, contentModifier)
+                CategoryList(
+                    uiState.expenseCategories,
+                    uiState.incomeCategories,
+                    onCategoryClicked = onCategoryClicked,
+                    contentModifier
+                )
             }
         }
     }
@@ -166,6 +174,7 @@ private fun ErrorStatePreview() {
 private fun CategoryList(
     expenseCategories: List<Category>,
     incomeCategories: List<Category>,
+    onCategoryClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expensesOpen by rememberSaveable { mutableStateOf(true) }
@@ -187,7 +196,8 @@ private fun CategoryList(
             items(expenseCategories, key = { it.id }) { cat ->
                 CategoryCard(
                     category = cat,
-                    budget = 150.00
+                    budget = 150.00,
+                    onCategoryClicked = onCategoryClicked
                 )
             }
         }
@@ -203,7 +213,8 @@ private fun CategoryList(
             items(incomeCategories, key = { it.id }) { cat ->
                 CategoryCard(
                     category = cat,
-                    budget = 150.00
+                    budget = 150.00,
+                    onCategoryClicked = onCategoryClicked
                 )
             }
         }
@@ -230,7 +241,7 @@ fun CategoryListPreview() {
 
     LedgerTheme {
         Surface {
-            CategoryList(testExpenseCategories, testIncomeCategories)
+            CategoryList(testExpenseCategories, testIncomeCategories, {})
         }
     }
 }
@@ -239,6 +250,7 @@ fun CategoryListPreview() {
 private fun CategoryCard(
     category: Category,
     budget: Double,
+    onCategoryClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -247,6 +259,7 @@ private fun CategoryCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = { onCategoryClicked(category.id) },
         modifier = modifier.fillMaxWidth()
     ) {
         ListItem(
@@ -270,7 +283,8 @@ private fun CategoryCardPreview() {
         Surface {
             CategoryCard(
                 Category(0, "Going out", TransactionType.EXPENSE, "Bars, dates, adventures"),
-                150.00
+                150.00,
+                {}
             )
         }
     }

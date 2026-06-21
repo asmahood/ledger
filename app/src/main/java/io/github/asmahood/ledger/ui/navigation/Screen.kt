@@ -36,9 +36,14 @@ sealed class Screen(
         title = R.string.add_category,
     )
 
+    data object EditCategory : Screen(
+        route = "editCategory/{categoryId}",
+        title = R.string.edit_category,
+    )
+
     companion object {
         val tabs: List<Screen> by lazy { listOf(Overview, Transactions, Manage) }
-        val fullScreenRoutes: Set<String> by lazy { setOf(AddCategory.route) }
+        val fullScreenRoutes: Set<String> by lazy { setOf(AddCategory.route, EditCategory.route) }
         val routesWithFAB: Set<String> by lazy { setOf(Overview.route, Transactions.route) }
     }
 }

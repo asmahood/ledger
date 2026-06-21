@@ -17,4 +17,8 @@
     <string name="description">Description</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="edit_category">Edit Category</string>
+    <string name="delete">Delete</string>
+    <string name="delete_category_title">Delete %s?</string>
+    <string name="delete_category_message">This category will be permanently deleted. This action can\'t be undone.</string>
 </resources>

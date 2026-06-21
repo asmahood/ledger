@@ -8,7 +8,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -16,12 +15,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import io.github.asmahood.ledger.R
-import io.github.asmahood.ledger.ui.manage.ManageScreen
+import io.github.asmahood.ledger.ui.manage.ManageScreenContent
 import io.github.asmahood.ledger.ui.manage.category.CategoryFormScreen
 import io.github.asmahood.ledger.ui.overview.OverviewScreen
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
@@ -44,11 +45,20 @@ fun LedgerNavHost(
             TransactionScreen()
         }
         composable(route = Screen.Manage.route) {
-            ManageScreen(
-                onAddCategoryClicked = { navController.navigate(Screen.AddCategory.route) }
+            ManageScreenContent(
+                onAddCategoryClicked = { navController.navigate(Screen.AddCategory.route) },
+                onCategoryClicked = { categoryId -> navController.navigate("editCategory/${categoryId}") }
             )
         }
         composable(route = Screen.AddCategory.route) {
+            CategoryFormScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+        composable(
+            route = Screen.EditCategory.route,
+            arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
+        ) {
             CategoryFormScreen(
                 onNavigateBack = { navController.navigateUp() }
             )

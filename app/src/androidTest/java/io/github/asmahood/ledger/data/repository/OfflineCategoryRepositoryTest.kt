@@ -57,4 +57,17 @@ class OfflineCategoryRepositoryTest {
         repository.insertCategory(Category(id = 0, name = "Groceries", type = TransactionType.INCOME))
         Unit
     }
+
+    @Test(expected = DuplicateCategoryException::class)
+    fun updateCategory_duplicateName_throwsDuplicateCategoryException() = runBlocking {
+        repository.insertCategory(Category(id = 0, name = "Groceries", type = TransactionType.EXPENSE))
+        repository.insertCategory(Category(id = 0, name = "Salary", type = TransactionType.INCOME))
+
+        val all = repository.getAllCategoriesStream().first()
+        val salary = all.first { it.name == "Salary" }
+
+        // Renaming "Salary" to an already-taken name is translated to DuplicateCategoryException.
+        repository.updateCategory(salary.copy(name = "Groceries"))
+        Unit
+    }
 }
