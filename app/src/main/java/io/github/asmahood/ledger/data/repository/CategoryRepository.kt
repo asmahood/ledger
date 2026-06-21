@@ -2,9 +2,9 @@ package io.github.asmahood.ledger.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
 import io.github.asmahood.ledger.data.db.dao.CategoryDao
-import io.github.asmahood.ledger.data.db.entity.CategoryEntity
+import io.github.asmahood.ledger.data.mapper.toEntity
+import io.github.asmahood.ledger.data.mapper.toModel
 import io.github.asmahood.ledger.data.model.Category
-import io.github.asmahood.ledger.data.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -52,22 +52,4 @@ class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao
     override suspend fun deleteCategory(category: Category) {
         return dao.delete(category.toEntity())
     }
-}
-
-fun CategoryEntity.toModel(): Category {
-    return Category(
-        id = this.id,
-        name = this.name,
-        type = TransactionType.valueOf(this.type),
-        description = this.description
-    )
-}
-
-fun Category.toEntity(): CategoryEntity {
-    return CategoryEntity(
-        id = this.id,
-        name = this.name,
-        type = this.type.toString(),
-        description = this.description
-    )
 }
