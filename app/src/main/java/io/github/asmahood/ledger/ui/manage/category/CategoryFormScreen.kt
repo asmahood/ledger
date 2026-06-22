@@ -15,9 +15,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -41,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.asmahood.ledger.R
 import io.github.asmahood.ledger.data.model.TransactionType
+import io.github.asmahood.ledger.ui.components.TransactionTypeSelector
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 
@@ -130,19 +128,10 @@ fun CategoryFormContent(
                 .fillMaxWidth()
 
         ) {
-            SingleChoiceSegmentedButtonRow {
-                TransactionType.entries.forEachIndexed { index, type ->
-                    SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = TransactionType.entries.size
-                        ),
-                        onClick = { onTypeChange(type) },
-                        selected = type == uiState.type,
-                        label = { Text(text = stringResource(type.label)) }
-                    )
-                }
-            }
+            TransactionTypeSelector(
+                selected = uiState.type,
+                onSelectedChange = onTypeChange
+            )
 
             OutlinedTextField(
                 value = uiState.name,
