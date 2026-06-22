@@ -64,7 +64,7 @@ fun LedgerApp(modifier: Modifier = Modifier) {
                     enter = fadeIn() + scaleIn(),
                     exit = fadeOut() + scaleOut(),
                 ) {
-                    FAB(onClick = { /* TODO: Navigate to add transaction screen */ })
+                    FAB(onClick = { navController.navigate(Screen.AddTransaction.route) })
                 }
             },
             modifier = modifier
