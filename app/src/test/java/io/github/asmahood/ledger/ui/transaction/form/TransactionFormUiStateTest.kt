@@ -51,6 +51,12 @@ class TransactionFormUiStateTest {
     }
 
     @Test
+    fun isFormValid_overflowAmount_isFalse() {
+        // A value too large for Double parses to Infinity rather than throwing; reject it.
+        assertFalse(validState().copy(amount = "1".repeat(400)).isFormValid)
+    }
+
+    @Test
     fun isFormValid_blankVendor_isFalse() {
         assertFalse(validState().copy(vendor = "   ").isFormValid)
     }
