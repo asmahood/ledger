@@ -37,4 +37,7 @@
     <string name="notes_supporting_text">Any additional information for this transaction</string>
     <string name="couldn_t_load_transactions">Couldn\'t load transactions</string>
     <string name="transactions_loading_desc">Loading transactions</string>
+    <string name="delete_this_transaction">Delete this transaction?</string>
+    <string name="delete_transaction_message">This transaction will be permanently deleted. This will affect the overall budget calculation. This action cannot be undone.</string>
+    <string name="edit_transaction">Edit Transaction</string>
 </resources>

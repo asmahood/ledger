@@ -1,5 +1,7 @@
 package io.github.asmahood.ledger.ui.transaction.form
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -7,9 +9,11 @@ import io.github.asmahood.ledger.data.model.Category
 import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.CategoryRepository
 import io.github.asmahood.ledger.data.repository.TransactionRepository
+import io.github.asmahood.ledger.util.transactionDateFormatter
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -18,13 +22,16 @@ import javax.inject.Inject
 @HiltViewModel
 class TransactionFormViewModel @Inject constructor(
     private val repository: TransactionRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionFormUiState())
     val uiState = _uiState.asStateFlow()
 
     private val _events = Channel<TransactionFormEvent>()
     val events = _events.receiveAsFlow()
+
+    private val transactionId: Long? = savedStateHandle["transactionId"]
 
     private var isSaving = false
     private var isLoading = true
@@ -34,6 +41,32 @@ class TransactionFormViewModel @Inject constructor(
             categoryRepository.getAllCategoriesStream().collect { categories ->
                 _uiState.update { it.copy(categories = categories) }
                 isLoading = false
+            }
+        }
+
+        if (transactionId != null) {
+            viewModelScope.launch {
+                try {
+                    val transaction = repository.getTransactionStream(transactionId).first()
+                    if (transaction != null) {
+                        _uiState.update {
+
+                            it.copy(
+                                id = transaction.id,
+                                type = transaction.type,
+                                amount = String.format("%.2f", transaction.amount),
+                                category = transaction.category,
+                                date = transaction.date.format(transactionDateFormatter),
+                                vendor = transaction.vendor,
+                                notes = transaction.notes ?: "",
+                            )
+                        }
+                    } else {
+                        _events.send(TransactionFormEvent.SavedSuccessfully)
+                    }
+                } finally {
+                    isLoading = false
+                }
             }
         }
     }
@@ -71,10 +104,33 @@ class TransactionFormViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                repository.insertTransaction(_uiState.value.toTransaction())
+                if (transactionId == null) {
+                    repository.insertTransaction(_uiState.value.toTransaction())
+                } else {
+                    repository.updateTransaction(_uiState.value.toTransaction())
+                }
                 _events.send(TransactionFormEvent.SavedSuccessfully)
             } catch (e: Exception) {
-                _events.send(TransactionFormEvent.ShowError(e.message ?: "Could not save transaction"))
+                _events.send(
+                    TransactionFormEvent.ShowError(
+                        e.message ?: "Could not save transaction"
+                    )
+                )
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
+    fun deleteTransaction() {
+        if (isSaving || isLoading) return
+        isSaving = true
+        viewModelScope.launch {
+            try {
+                repository.deleteTransaction(_uiState.value.toTransaction())
+                _events.send(TransactionFormEvent.SavedSuccessfully)
+            } catch (e: Exception) {
+                _events.send(TransactionFormEvent.ShowError(e.message ?: "Could not delete transaction"))
             } finally {
                 isSaving = false
             }
