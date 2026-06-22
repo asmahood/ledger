@@ -27,6 +27,7 @@ import io.github.asmahood.ledger.ui.manage.category.CategoryFormScreen
 import io.github.asmahood.ledger.ui.overview.OverviewScreen
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 import io.github.asmahood.ledger.ui.transaction.TransactionScreen
+import io.github.asmahood.ledger.ui.transaction.form.TransactionFormScreen
 
 @Composable
 fun LedgerNavHost(
@@ -60,6 +61,11 @@ fun LedgerNavHost(
             arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
         ) {
             CategoryFormScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+        composable(route = Screen.AddTransaction.route) {
+            TransactionFormScreen(
                 onNavigateBack = { navController.navigateUp() }
             )
         }
