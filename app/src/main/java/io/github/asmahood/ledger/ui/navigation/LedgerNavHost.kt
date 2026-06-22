@@ -43,12 +43,14 @@ fun LedgerNavHost(
             OverviewScreen()
         }
         composable(route = Screen.Transactions.route) {
-            TransactionListScreen()
+            TransactionListScreen(
+                onTransactionClicked = { transactionId: Long -> navController.navigate("editTransaction/${transactionId}")}
+            )
         }
         composable(route = Screen.Manage.route) {
             ManageScreenContent(
                 onAddCategoryClicked = { navController.navigate(Screen.AddCategory.route) },
-                onCategoryClicked = { categoryId -> navController.navigate("editCategory/${categoryId}") }
+                onCategoryClicked = { categoryId: Long -> navController.navigate("editCategory/${categoryId}") }
             )
         }
         composable(route = Screen.AddCategory.route) {
@@ -65,6 +67,14 @@ fun LedgerNavHost(
             )
         }
         composable(route = Screen.AddTransaction.route) {
+            TransactionFormScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+        composable(
+            route = Screen.EditTransaction.route,
+            arguments = listOf(navArgument("transactionId") { type = NavType.LongType })
+        ) {
             TransactionFormScreen(
                 onNavigateBack = { navController.navigateUp() }
             )
