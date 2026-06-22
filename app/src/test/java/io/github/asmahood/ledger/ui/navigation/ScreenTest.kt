@@ -30,4 +30,15 @@ class ScreenTest {
     fun editCategory_routeContainsCategoryIdArgument() {
         assertTrue(Screen.EditCategory.route.contains("{categoryId}"))
     }
+
+    @Test
+    fun fullScreenRoutes_containsAddAndEditTransaction() {
+        assertTrue(Screen.fullScreenRoutes.contains(Screen.AddTransaction.route))
+        assertTrue(Screen.fullScreenRoutes.contains(Screen.EditTransaction.route))
+    }
+
+    @Test
+    fun editTransaction_routeContainsTransactionIdArgument() {
+        assertTrue(Screen.EditTransaction.route.contains("{transactionId}"))
+    }
 }
