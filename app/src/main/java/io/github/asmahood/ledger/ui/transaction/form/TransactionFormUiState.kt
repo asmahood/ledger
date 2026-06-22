@@ -19,7 +19,8 @@ data class TransactionFormUiState(
     val isFormValid: Boolean
         get() {
             return try {
-                amount.isNotBlank() && amount.toDouble() > 0.0 && date.isNotBlank() && vendor.isNotBlank() && category != null
+                val parsedAmount = amount.toDouble()
+                amount.isNotBlank() && parsedAmount.isFinite() && parsedAmount > 0.0 && date.isNotBlank() && vendor.isNotBlank() && category != null
             } catch (e: NumberFormatException) {
                 false
             }

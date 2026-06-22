@@ -26,7 +26,6 @@ import io.github.asmahood.ledger.ui.manage.ManageScreenContent
 import io.github.asmahood.ledger.ui.manage.category.CategoryFormScreen
 import io.github.asmahood.ledger.ui.overview.OverviewScreen
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
-import io.github.asmahood.ledger.ui.transaction.TransactionScreen
 import io.github.asmahood.ledger.ui.transaction.form.TransactionFormScreen
 import io.github.asmahood.ledger.ui.transaction.list.TransactionListScreen
 

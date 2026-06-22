@@ -27,12 +27,13 @@ class TransactionFormViewModel @Inject constructor(
     val events = _events.receiveAsFlow()
 
     private var isSaving = false
-    private var isLoading = false
+    private var isLoading = true
 
     init {
         viewModelScope.launch {
             categoryRepository.getAllCategoriesStream().collect { categories ->
                 _uiState.update { it.copy(categories = categories) }
+                isLoading = false
             }
         }
     }
