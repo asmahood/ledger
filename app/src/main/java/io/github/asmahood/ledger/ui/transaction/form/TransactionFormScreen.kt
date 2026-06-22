@@ -24,9 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -56,11 +53,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.asmahood.ledger.R
 import io.github.asmahood.ledger.data.model.Category
 import io.github.asmahood.ledger.data.model.TransactionType
+import io.github.asmahood.ledger.ui.components.TransactionTypeSelector
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.util.transactionDateFormatter
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun TransactionFormScreen(
@@ -123,7 +121,7 @@ fun TransactionFormContent(
                 Instant.ofEpochMilli(millis)
                     .atZone(ZoneId.of("UTC"))
                     .toLocalDate()
-                    .format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))
+                    .format(transactionDateFormatter)
             )
             showDatePicker = false
         }
@@ -154,19 +152,10 @@ fun TransactionFormContent(
                 .padding(contentPadding)
                 .fillMaxWidth()
         ) {
-            SingleChoiceSegmentedButtonRow {
-                TransactionType.entries.forEachIndexed { index, type ->
-                    SegmentedButton(
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = TransactionType.entries.size
-                        ),
-                        onClick = { onTypeChange(type) },
-                        selected = type == uiState.type,
-                        label = { Text(text = stringResource(type.label)) }
-                    )
-                }
-            }
+            TransactionTypeSelector(
+                selected = uiState.type,
+                onSelectedChange = onTypeChange
+            )
 
             OutlinedTextField(
                 value = uiState.amount,

@@ -36,4 +36,5 @@
     <string name="notes">Notes</string>
     <string name="notes_supporting_text">Any additional information for this transaction</string>
     <string name="couldn_t_load_transactions">Couldn\'t load transactions</string>
+    <string name="transactions_loading_desc">Loading transactions</string>
 </resources>
