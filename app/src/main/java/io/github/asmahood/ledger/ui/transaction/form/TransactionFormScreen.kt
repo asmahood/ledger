@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,11 +23,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,6 +83,7 @@ fun TransactionFormScreen(
         onNotesChange = viewModel::updateNotes,
         onNavigateBack = onNavigateBack,
         onSave = viewModel::saveTransaction,
+        onDelete = viewModel::deleteTransaction,
         modifier = modifier
     )
 
@@ -88,7 +92,8 @@ fun TransactionFormScreen(
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    TransactionFormEvent.SavedSuccessfully -> onNavigateBack()
+                    TransactionFormEvent.SavedSuccessfully,
+                    TransactionFormEvent.Dismissed -> onNavigateBack()
                     is TransactionFormEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
                 }
             }
@@ -109,11 +114,13 @@ fun TransactionFormContent(
     onNotesChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onSave: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var categoriesExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(datePickerState.selectedDateMillis) {
         datePickerState.selectedDateMillis?.let { millis ->
@@ -130,7 +137,7 @@ fun TransactionFormContent(
     Scaffold(
         topBar = {
             LedgerTopBar(
-                title = stringResource(R.string.add_transaction),
+                title = stringResource(if (uiState.isEditMode) R.string.edit_transaction else R.string.add_transaction),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -139,7 +146,16 @@ fun TransactionFormContent(
                         )
                     }
                 },
-                actions = {}
+                actions = {
+                    if (uiState.isEditMode) {
+                        OutlinedIconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = stringResource(R.string.delete)
+                            )
+                        }
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -281,6 +297,28 @@ fun TransactionFormContent(
                 }
             }
         }
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text(text = stringResource(R.string.delete_this_transaction)) },
+                text = { Text(text = stringResource(R.string.delete_transaction_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            onDelete()
+                        }
+                    ) {
+                        Text(text = stringResource(R.string.delete))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text(text = stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -298,7 +336,8 @@ fun TransactionFormContentCreatePreview() {
             onVendorChange = {},
             onNotesChange = {},
             onNavigateBack = {},
-            onSave = {}
+            onSave = {},
+            onDelete = {}
         )
     }
 }
