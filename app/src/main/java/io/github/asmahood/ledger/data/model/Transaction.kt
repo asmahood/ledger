@@ -11,3 +11,8 @@ data class Transaction(
     val notes: String?,
     val category: Category
 )
+
+data class TransactionDayGroup(
+    val date: LocalDate,
+    val transactions: List<Transaction>
+)

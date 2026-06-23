@@ -40,4 +40,6 @@
     <string name="delete_this_transaction">Delete this transaction?</string>
     <string name="delete_transaction_message">This transaction will be permanently deleted. This will affect the overall budget calculation. This action cannot be undone.</string>
     <string name="edit_transaction">Edit Transaction</string>
+    <string name="day_header_today">Today</string>
+    <string name="day_header_yesterday">Yesterday</string>
 </resources>
