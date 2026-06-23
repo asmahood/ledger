@@ -92,7 +92,8 @@ fun TransactionFormScreen(
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    TransactionFormEvent.SavedSuccessfully -> onNavigateBack()
+                    TransactionFormEvent.SavedSuccessfully,
+                    TransactionFormEvent.Dismissed -> onNavigateBack()
                     is TransactionFormEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
                 }
             }
@@ -136,7 +137,7 @@ fun TransactionFormContent(
     Scaffold(
         topBar = {
             LedgerTopBar(
-                title = stringResource(if (uiState.id != 0L) R.string.edit_transaction else R.string.add_transaction),
+                title = stringResource(if (uiState.isEditMode) R.string.edit_transaction else R.string.add_transaction),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -146,7 +147,7 @@ fun TransactionFormContent(
                     }
                 },
                 actions = {
-                    if (uiState.id != 0L) {
+                    if (uiState.isEditMode) {
                         OutlinedIconButton(onClick = { showDeleteDialog = true }) {
                             Icon(
                                 painter = painterResource(R.drawable.delete),

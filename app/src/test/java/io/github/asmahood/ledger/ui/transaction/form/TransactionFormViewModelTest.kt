@@ -16,6 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Locale
 
 class TransactionFormViewModelTest {
     @get:Rule
@@ -224,12 +225,18 @@ class TransactionFormViewModelTest {
 
         val state = vm.uiState.value
         assertEquals(5L, state.id)
+        assertTrue(state.isEditMode)
         assertEquals("42.50", state.amount)
         assertEquals("01/15/2026", state.date)
         assertEquals("Food Basics", state.vendor)
         assertEquals(TransactionType.EXPENSE, state.type)
         assertEquals(expenseCategory, state.category)
         assertEquals("weekly shop", state.notes)
+    }
+
+    @Test
+    fun addMode_initialState_isNotEditMode() {
+        assertFalse(viewModel().uiState.value.isEditMode)
     }
 
     @Test
@@ -240,6 +247,22 @@ class TransactionFormViewModelTest {
     }
 
     @Test
+    fun editMode_initialState_amountUsesDotDecimalSeparatorInCommaLocale() {
+        // The pre-populated amount is parsed back via amount.toDouble(), which only accepts '.';
+        // formatting must not honour a comma-decimal default locale (e.g. Germany).
+        val originalLocale = Locale.getDefault()
+        Locale.setDefault(Locale.GERMANY)
+        try {
+            val vm = editViewModel(sampleTransaction(amount = 42.5))
+
+            assertEquals("42.50", vm.uiState.value.amount)
+            assertTrue(vm.uiState.value.isFormValid)
+        } finally {
+            Locale.setDefault(originalLocale)
+        }
+    }
+
+    @Test
     fun editMode_initialState_nullNotes_mapsToEmptyString() {
         val vm = editViewModel(sampleTransaction(notes = null))
 
@@ -247,7 +270,7 @@ class TransactionFormViewModelTest {
     }
 
     @Test
-    fun editMode_transactionNotFound_emitsSavedSuccessfully() = runTest {
+    fun editMode_transactionNotFound_emitsDismissed() = runTest {
         // Transaction absent from repo — simulates deletion between navigation and ViewModel creation.
         val vm = TransactionFormViewModel(
             repository,
@@ -256,7 +279,7 @@ class TransactionFormViewModelTest {
         )
 
         vm.events.test {
-            assertEquals(TransactionFormEvent.SavedSuccessfully, awaitItem())
+            assertEquals(TransactionFormEvent.Dismissed, awaitItem())
         }
     }
 
