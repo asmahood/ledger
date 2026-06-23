@@ -3,6 +3,7 @@ package io.github.asmahood.ledger.ui.transaction.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.asmahood.ledger.data.mapper.toDayGroups
 import io.github.asmahood.ledger.data.model.Transaction
 import io.github.asmahood.ledger.data.repository.TransactionRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,8 +18,8 @@ class TransactionListViewModel @Inject constructor(
     private val repository: TransactionRepository,
 ) : ViewModel() {
     val uiState: StateFlow<TransactionListUiState> = repository.getAllTransactionsStream()
-        .map<List<Transaction>, TransactionListUiState> {
-            TransactionListUiState.Success(transactions = it)
+        .map<List<Transaction>, TransactionListUiState> { transactions ->
+            TransactionListUiState.Success(groups = transactions.toDayGroups())
         }
         .catch { emit(TransactionListUiState.Error(it.message ?: "Unknown error occurred")) }
         .stateIn(
