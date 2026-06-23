@@ -86,6 +86,14 @@ class AddTransactionFlowTest {
             composeRule.onAllNodesWithText("Add transaction").fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithContentDescription("Add a new transaction").assertIsDisplayed()
+
+        // The expense appears in the list grouped under today's header (AC1) with a signed,
+        // red-styled amount (AC2).
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Food Basics").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Today").assertIsDisplayed()
+        composeRule.onNodeWithText("-\$42.00").assertIsDisplayed()
     }
 
     @Test
@@ -109,5 +117,13 @@ class AddTransactionFlowTest {
             composeRule.onAllNodesWithText("Add transaction").fetchSemanticsNodes().isEmpty()
         }
         composeRule.onNodeWithContentDescription("Add a new transaction").assertIsDisplayed()
+
+        // The income appears in the list grouped under today's header (AC1) with a signed,
+        // green-styled amount (AC2).
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Employer").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Today").assertIsDisplayed()
+        composeRule.onNodeWithText("+\$1,500.00").assertIsDisplayed()
     }
 }
