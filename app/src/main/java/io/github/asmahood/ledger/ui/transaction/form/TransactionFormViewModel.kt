@@ -1,6 +1,5 @@
 package io.github.asmahood.ledger.ui.transaction.form
 
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,13 +34,23 @@ class TransactionFormViewModel @Inject constructor(
     private val transactionId: Long? = savedStateHandle["transactionId"]
 
     private var isSaving = false
-    private var isLoading = true
+    private var categoriesLoaded = false
+    // In add mode there is no transaction to load, so it is "loaded" from the start.
+    private var transactionLoaded = transactionId == null
+
+    // The form is loading until both the categories and (in edit mode) the transaction have arrived.
+    private val isLoading: Boolean
+        get() = !(categoriesLoaded && transactionLoaded)
 
     init {
+        if (transactionId != null) {
+            _uiState.update { it.copy(isEditMode = true) }
+        }
+
         viewModelScope.launch {
             categoryRepository.getAllCategoriesStream().collect { categories ->
                 _uiState.update { it.copy(categories = categories) }
-                isLoading = false
+                categoriesLoaded = true
             }
         }
 
@@ -50,11 +60,10 @@ class TransactionFormViewModel @Inject constructor(
                     val transaction = repository.getTransactionStream(transactionId).first()
                     if (transaction != null) {
                         _uiState.update {
-
                             it.copy(
                                 id = transaction.id,
                                 type = transaction.type,
-                                amount = String.format("%.2f", transaction.amount),
+                                amount = String.format(Locale.US, "%.2f", transaction.amount),
                                 category = transaction.category,
                                 date = transaction.date.format(transactionDateFormatter),
                                 vendor = transaction.vendor,
@@ -62,10 +71,10 @@ class TransactionFormViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        _events.send(TransactionFormEvent.SavedSuccessfully)
+                        _events.send(TransactionFormEvent.Dismissed)
                     }
                 } finally {
-                    isLoading = false
+                    transactionLoaded = true
                 }
             }
         }
