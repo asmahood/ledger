@@ -39,12 +39,14 @@ import java.time.LocalDate
 
 @Composable
 fun TransactionListScreen(
+    onTransactionClicked: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TransactionListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TransactionListContent(
         uiState = uiState,
+        onTransactionClicked = onTransactionClicked,
         modifier = modifier
     )
 }
@@ -52,6 +54,7 @@ fun TransactionListScreen(
 @Composable
 private fun TransactionListContent(
     uiState: TransactionListUiState,
+    onTransactionClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -72,13 +75,21 @@ private fun TransactionListContent(
                 modifier = contentModifier
             )
 
-            is TransactionListUiState.Success -> TransactionList(uiState.transactions, contentModifier)
+            is TransactionListUiState.Success -> TransactionList(
+                uiState.transactions,
+                onTransactionClicked = onTransactionClicked,
+                contentModifier
+            )
         }
     }
 }
 
 @Composable
-private fun TransactionList(transactions: List<Transaction>, modifier: Modifier = Modifier) {
+private fun TransactionList(
+    transactions: List<Transaction>,
+    onTransactionClicked: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -86,21 +97,27 @@ private fun TransactionList(transactions: List<Transaction>, modifier: Modifier 
     ) {
         items(transactions, key = { it.id }) { transaction ->
             TransactionCard(
-                transaction = transaction
+                transaction = transaction,
+                onTransactionClicked = onTransactionClicked
             )
         }
     }
 }
 
 @Composable
-private fun TransactionCard(transaction: Transaction, modifier: Modifier = Modifier) {
+private fun TransactionCard(
+    transaction: Transaction,
+    onTransactionClicked: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         shape = RoundedCornerShape(size = 20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        onClick = { onTransactionClicked(transaction.id) }
     ) {
         ListItem(
             headlineContent = {
@@ -125,10 +142,27 @@ private fun TransactionListPreview() {
         TransactionListContent(
             uiState = TransactionListUiState.Success(
                 listOf(
-                    Transaction(0, 42.18, LocalDate.now(), "Food Basics", TransactionType.EXPENSE, null, groceries),
-                    Transaction(1, 1500.00, LocalDate.now(), "Employer", TransactionType.INCOME, null, salary),
+                    Transaction(
+                        0,
+                        42.18,
+                        LocalDate.now(),
+                        "Food Basics",
+                        TransactionType.EXPENSE,
+                        null,
+                        groceries
+                    ),
+                    Transaction(
+                        1,
+                        1500.00,
+                        LocalDate.now(),
+                        "Employer",
+                        TransactionType.INCOME,
+                        null,
+                        salary
+                    ),
                 )
-            )
+            ),
+            onTransactionClicked = {}
         )
     }
 }

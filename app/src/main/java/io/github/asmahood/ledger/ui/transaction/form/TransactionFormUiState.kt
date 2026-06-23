@@ -15,6 +15,7 @@ data class TransactionFormUiState(
     val notes: String = "",
     val category: Category? = null,
     val categories: List<Category> = listOf(),
+    val isEditMode: Boolean = false,
 ) {
     val isFormValid: Boolean
         get() {
