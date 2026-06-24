@@ -17,14 +17,14 @@ import io.github.asmahood.ledger.util.formatCurrency
  * "/mo" for recurring budgets.
  */
 @Composable
-fun AmountPill(amount: Double, modifier: Modifier = Modifier, suffix: String = "") {
+fun AmountPill(amount: Double?, modifier: Modifier = Modifier, suffix: String = "") {
     Surface(
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.secondaryContainer,
         modifier = modifier
     ) {
         Text(
-            text = "${formatCurrency(amount)}$suffix",
+            text = if (amount != null) "${formatCurrency(amount)}$suffix" else "-",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
