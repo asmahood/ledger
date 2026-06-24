@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.manage.category
 
 import io.github.asmahood.ledger.data.model.Category
+import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.TransactionType
 
 data class CategoryFormUiState(
@@ -9,6 +10,8 @@ data class CategoryFormUiState(
     val description: String = "",
     val type: TransactionType = TransactionType.EXPENSE,
     val budget: String = "",
+    val monthlyStats: MonthlyAmountStats? = null,
+    val isStatsLoaded: Boolean = false
 ) {
     val isFormValid: Boolean
         get() {

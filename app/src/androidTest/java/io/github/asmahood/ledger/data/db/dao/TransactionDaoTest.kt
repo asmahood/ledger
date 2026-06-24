@@ -168,4 +168,91 @@ class TransactionDaoTest {
         categoryDao.delete(category)
         Unit
     }
+
+    // ── Monthly amount stats ──────────────────────────────────────────────────────
+
+    @Test
+    fun getMonthlyAmountStats_averagesMonthlyTotalsAcrossMonths() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 15)))
+        dao.insert(transaction(amount = 300.0, date = LocalDate.of(2026, 2, 10)))
+
+        // Two months with totals 100 and 300: average 200, range 100–300.
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(200.0, stats.average!!, 0.001)
+        assertEquals(100.0, stats.minimum!!, 0.001)
+        assertEquals(300.0, stats.maximum!!, 0.001)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_sumsTransactionsWithinSameMonth() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 5)))
+        dao.insert(transaction(amount = 50.0, date = LocalDate.of(2026, 1, 20)))
+
+        // One month whose transactions sum to 150, so avg = min = max = 150.
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(150.0, stats.average!!, 0.001)
+        assertEquals(150.0, stats.minimum!!, 0.001)
+        assertEquals(150.0, stats.maximum!!, 0.001)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_singleTransaction_allValuesEqual() = runBlocking {
+        dao.insert(transaction(amount = 42.0, date = LocalDate.of(2026, 3, 1)))
+
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(42.0, stats.average!!, 0.001)
+        assertEquals(42.0, stats.minimum!!, 0.001)
+        assertEquals(42.0, stats.maximum!!, 0.001)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_noTransactions_returnsNulls() = runBlocking {
+        // Aggregating over zero rows yields a single all-NULL row, which maps to "no data".
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertNull(stats.average)
+        assertNull(stats.minimum)
+        assertNull(stats.maximum)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_onlyCountsRequestedCategory() = runBlocking {
+        categoryDao.insert(
+            CategoryEntity(name = "Rent", description = null, type = TransactionType.EXPENSE.name),
+        )
+        val rentId = categoryDao.getAllCategories().first()
+            .first { it.category.name == "Rent" }.category.id
+
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 15)))
+        dao.insert(transaction(amount = 999.0, date = LocalDate.of(2026, 1, 15), categoryId = rentId))
+
+        // The 999 belongs to Rent and must not bleed into the Groceries average.
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(100.0, stats.average!!, 0.001)
+        assertEquals(100.0, stats.maximum!!, 0.001)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_groupsByCalendarMonthNotRollingDays() = runBlocking {
+        // Adjacent days across a month boundary must land in separate buckets.
+        dao.insert(transaction(amount = 80.0, date = LocalDate.of(2026, 1, 31)))
+        dao.insert(transaction(amount = 20.0, date = LocalDate.of(2026, 2, 1)))
+
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(50.0, stats.average!!, 0.001)
+        assertEquals(20.0, stats.minimum!!, 0.001)
+        assertEquals(80.0, stats.maximum!!, 0.001)
+    }
+
+    @Test
+    fun getMonthlyAmountStats_averagesOverTrackedSpanIncludingEmptyMonths() = runBlocking {
+        // Spend in Jan and Jun with empty months in between: the average divides the
+        // $900 total by the full 6-month span, while min/max stay over active months.
+        dao.insert(transaction(amount = 600.0, date = LocalDate.of(2026, 1, 15)))
+        dao.insert(transaction(amount = 300.0, date = LocalDate.of(2026, 6, 10)))
+
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(150.0, stats.average!!, 0.001)
+        assertEquals(300.0, stats.minimum!!, 0.001)
+        assertEquals(600.0, stats.maximum!!, 0.001)
+    }
 }
