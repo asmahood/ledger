@@ -1,5 +1,6 @@
 package io.github.asmahood.ledger.data.repository
 
+import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,13 +13,17 @@ import kotlinx.coroutines.flow.map
  * - Drive the transactions stream with [setTransactions].
  * - Make the stream fail by setting [streamError] (covers ViewModel error paths).
  * - Inspect writes via [inserted] / [updated] / [deleted].
+ * - Drive the per-category monthly stats with [setMonthlyStats]; inspect which
+ *   categories were queried via [monthlyStatsRequestedFor].
  */
 class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
+    private val monthlyStats = MutableStateFlow<Map<Long, MonthlyAmountStats?>>(emptyMap())
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
     val deleted = mutableListOf<Transaction>()
+    val monthlyStatsRequestedFor = mutableListOf<Long>()
 
     var streamError: Throwable? = null
     var insertError: Throwable? = null
@@ -27,6 +32,10 @@ class FakeTransactionRepository : TransactionRepository {
 
     fun setTransactions(values: List<Transaction>) {
         transactions.value = values
+    }
+
+    fun setMonthlyStats(categoryId: Long, stats: MonthlyAmountStats?) {
+        monthlyStats.value = monthlyStats.value + (categoryId to stats)
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -52,5 +61,10 @@ class FakeTransactionRepository : TransactionRepository {
         deleteError?.let { throw it }
         deleted += transaction
         transactions.value = transactions.value.filterNot { it.id == transaction.id }
+    }
+
+    override fun getMonthlyAmountStatsStream(categoryId: Long): Flow<MonthlyAmountStats?> {
+        monthlyStatsRequestedFor += categoryId
+        return monthlyStats.map { it[categoryId] }
     }
 }
