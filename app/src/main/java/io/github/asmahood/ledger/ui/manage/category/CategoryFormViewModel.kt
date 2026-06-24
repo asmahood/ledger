@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.CategoryRepository
+import io.github.asmahood.ledger.data.repository.TransactionRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CategoryFormViewModel @Inject constructor(
     private val repository: CategoryRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CategoryFormUiState())
     val uiState = _uiState.asStateFlow()
@@ -34,31 +36,44 @@ class CategoryFormViewModel @Inject constructor(
 
     init {
         if (categoryId != null) {
-            isLoading = true
-            viewModelScope.launch {
-                try {
-                    val category = repository.getCategoryStream(categoryId).first()
-                    if (category != null) {
-                        _uiState.update {
-                            it.copy(
-                                id = category.id,
-                                name = category.name,
-                                description = category.description ?: "",
-                                type = category.type,
-                                budget = category.budget?.let {
-                                    String.format(Locale.US, "%.2f", it)
-                                } ?: ""
-                            )
-                        }
-                    } else {
-                        _events.send(CategoryFormEvent.SavedSuccessfully)
+            loadCategory(categoryId)
+            observerMonthlyStats(categoryId)
+        }
+    }
+
+    private fun loadCategory(categoryId: Long) {
+        isLoading = true
+        viewModelScope.launch {
+            try {
+                val category = repository.getCategoryStream(categoryId).first()
+                if (category != null) {
+                    _uiState.update {
+                        it.copy(
+                            id = category.id,
+                            name = category.name,
+                            description = category.description ?: "",
+                            type = category.type,
+                            budget = category.budget?.let {
+                                String.format(Locale.US, "%.2f", it)
+                            } ?: ""
+                        )
                     }
-                } finally {
-                    isLoading = false
+                } else {
+                    _events.send(CategoryFormEvent.SavedSuccessfully)
                 }
+            } finally {
+                isLoading = false
             }
         }
     }
+
+        private fun observerMonthlyStats(categoryId: Long) {
+            viewModelScope.launch {
+                transactionRepository.getMonthlyAmountStatsStream(categoryId).collect { stats ->
+                    _uiState.update { it.copy(monthlyStats = stats, isStatsLoaded = true) }
+                }
+            }
+        }
 
     fun updateName(value: String) {
         _uiState.update { it.copy(name = value) }

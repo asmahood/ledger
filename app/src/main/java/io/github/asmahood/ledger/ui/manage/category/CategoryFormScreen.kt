@@ -44,6 +44,7 @@ import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.ui.components.TransactionTypeSelector
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.util.formatCurrency
 
 @Composable
 fun CategoryFormScreen(
@@ -165,6 +166,27 @@ fun CategoryFormContent(
                 prefix = { Text(stringResource(R.string.dollar_sign)) },
                 suffix = { Text(stringResource(R.string.mo)) },
                 placeholder = { Text(stringResource(R.string.budget_placeholder)) },
+                supportingText = {
+                    val stats = uiState.monthlyStats
+                    when {
+                        !uiState.isStatsLoaded -> {}
+                        stats == null -> Text(stringResource(R.string.average_not_enough_data))
+                        stats.minimum == stats.maximum -> Text(
+                            stringResource(
+                                R.string.budget_supporting_text_single,
+                                formatCurrency(stats.average)
+                            )
+                        )
+                        else -> Text(
+                            stringResource(
+                                R.string.budget_supporting_text,
+                                formatCurrency(stats.average),
+                                formatCurrency(stats.minimum),
+                                formatCurrency(stats.maximum)
+                            )
+                        )
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true
             )
