@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.manage.category
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -49,6 +50,8 @@ class AddCategoryFlowTest {
             composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText(categoryName).assertIsDisplayed()
+        // A category with no budget shows "-" in the trailing pill.
+        composeRule.onNode(hasText(categoryName) and hasText("-")).assertIsDisplayed()
     }
 
     @Test
@@ -68,5 +71,7 @@ class AddCategoryFlowTest {
             composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText(categoryName).assertIsDisplayed()
+        // The trailing pill shows the formatted amount with a "/mo" suffix.
+        composeRule.onNode(hasText(categoryName) and hasText("$250.00/mo")).assertIsDisplayed()
     }
 }
