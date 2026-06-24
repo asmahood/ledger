@@ -142,7 +142,6 @@ private fun CategoryList(
             items(expenseCategories, key = { it.id }) { cat ->
                 CategoryCard(
                     category = cat,
-                    budget = 150.00,
                     onCategoryClicked = onCategoryClicked
                 )
             }
@@ -159,7 +158,6 @@ private fun CategoryList(
             items(incomeCategories, key = { it.id }) { cat ->
                 CategoryCard(
                     category = cat,
-                    budget = 150.00,
                     onCategoryClicked = onCategoryClicked
                 )
             }
@@ -195,7 +193,6 @@ fun CategoryListPreview() {
 @Composable
 private fun CategoryCard(
     category: Category,
-    budget: Double,
     onCategoryClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -216,7 +213,7 @@ private fun CategoryCard(
                 { Text(text = category.description, fontStyle = FontStyle.Italic) }
             } else null,
             leadingContent = { Avatar(category) },
-            trailingContent = { AmountPill(budget, suffix = "/mo") },
+            trailingContent = { AmountPill(category.budget, suffix = "/mo") },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
@@ -229,7 +226,6 @@ private fun CategoryCardPreview() {
         Surface {
             CategoryCard(
                 Category(0, "Going out", TransactionType.EXPENSE, "Bars, dates, adventures"),
-                150.00,
                 {}
             )
         }
