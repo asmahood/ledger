@@ -4,5 +4,6 @@ data class Category(
     val id: Long,
     val name: String,
     val type: TransactionType,
-    val description: String? = null
+    val description: String? = null,
+    val budget: Double? = null
 )

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +28,7 @@ class OfflineCategoryRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, LedgerDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = OfflineCategoryRepository(db.categoryDao())
+        repository = OfflineCategoryRepository(db.categoryDao(), db.budgetDao())
     }
 
     @After
@@ -56,6 +57,27 @@ class OfflineCategoryRepositoryTest {
         // Translated from the underlying SQLiteConstraintException by the repository.
         repository.insertCategory(Category(id = 0, name = "Groceries", type = TransactionType.INCOME))
         Unit
+    }
+
+    @Test
+    fun setBudget_setsUpdatesAndClearsThroughCategoryStream() = runBlocking {
+        val id = repository.insertCategory(
+            Category(id = 0, name = "Groceries", type = TransactionType.EXPENSE),
+        )
+
+        // Set: a fresh budget surfaces on the category's domain model.
+        repository.setBudget(id, 200.0)
+        assertEquals(200.0, repository.getCategoryStream(id).first()?.budget)
+
+        // Update: upsert replaces the existing budget rather than adding a second row.
+        repository.setBudget(id, 350.0)
+        assertEquals(350.0, repository.getCategoryStream(id).first()?.budget)
+
+        // Clear: a null amount removes the budget, leaving the category intact.
+        repository.setBudget(id, null)
+        val cleared = repository.getCategoryStream(id).first()
+        assertEquals("Groceries", cleared?.name)
+        assertNull(cleared?.budget)
     }
 
     @Test(expected = DuplicateCategoryException::class)

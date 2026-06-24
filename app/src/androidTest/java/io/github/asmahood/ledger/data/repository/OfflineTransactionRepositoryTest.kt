@@ -39,7 +39,7 @@ class OfflineTransactionRepositoryTest {
         db.categoryDao().insert(
             CategoryEntity(name = "Groceries", description = "Food", type = TransactionType.EXPENSE.name),
         )
-        val stored = db.categoryDao().getAllCategories().first().first()
+        val stored = db.categoryDao().getAllCategories().first().first().category
         groceries = Category(
             id = stored.id,
             name = stored.name,

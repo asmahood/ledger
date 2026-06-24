@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.asmahood.ledger.data.db.LedgerDatabase
+import io.github.asmahood.ledger.data.db.entity.BudgetEntity
 import io.github.asmahood.ledger.data.db.entity.CategoryEntity
 import io.github.asmahood.ledger.data.model.TransactionType
 import kotlinx.coroutines.flow.first
@@ -23,6 +24,7 @@ import java.io.IOException
 class CategoryDaoTest {
     private lateinit var db: LedgerDatabase
     private lateinit var dao: CategoryDao
+    private lateinit var budgetDao: BudgetDao
 
     private val groceries = CategoryEntity(
         name = "Groceries",
@@ -37,6 +39,7 @@ class CategoryDaoTest {
             .allowMainThreadQueries()
             .build()
         dao = db.categoryDao()
+        budgetDao = db.budgetDao()
     }
 
     @After
@@ -51,14 +54,14 @@ class CategoryDaoTest {
 
         val all = dao.getAllCategories().first()
         assertEquals(1, all.size)
-        assertEquals("Groceries", all.first().name)
+        assertEquals("Groceries", all.first().category.name)
     }
 
     @Test
     fun categoryDao_insert_autoGeneratesId() = runBlocking {
         dao.insert(groceries)
 
-        val inserted = dao.getAllCategories().first().first()
+        val inserted = dao.getAllCategories().first().first().category
         assertTrue("Expected a non-zero generated id", inserted.id > 0)
     }
 
@@ -68,17 +71,17 @@ class CategoryDaoTest {
         dao.insert(CategoryEntity(name = "Auto", description = null, type = TransactionType.EXPENSE.name))
         dao.insert(CategoryEntity(name = "Groceries", description = null, type = TransactionType.EXPENSE.name))
 
-        val names = dao.getAllCategories().first().map { it.name }
+        val names = dao.getAllCategories().first().map { it.category.name }
         assertEquals(listOf("Auto", "Groceries", "Rent"), names)
     }
 
     @Test
     fun categoryDao_getCategory_returnsMatchingRow() = runBlocking {
         dao.insert(groceries)
-        val id = dao.getAllCategories().first().first().id
+        val id = dao.getAllCategories().first().first().category.id
 
         val fetched = dao.getCategory(id).first()
-        assertEquals("Groceries", fetched?.name)
+        assertEquals("Groceries", fetched?.category?.name)
     }
 
     @Test
@@ -91,22 +94,41 @@ class CategoryDaoTest {
     @Test
     fun categoryDao_update_modifiesRow() = runBlocking {
         dao.insert(groceries)
-        val inserted = dao.getAllCategories().first().first()
+        val inserted = dao.getAllCategories().first().first().category
 
         dao.update(inserted.copy(name = "Food"))
 
         val updated = dao.getCategory(inserted.id).first()
-        assertEquals("Food", updated?.name)
+        assertEquals("Food", updated?.category?.name)
     }
 
     @Test
     fun categoryDao_delete_removesRow() = runBlocking {
         dao.insert(groceries)
-        val inserted = dao.getAllCategories().first().first()
+        val inserted = dao.getAllCategories().first().first().category
 
         dao.delete(inserted)
 
         assertTrue(dao.getAllCategories().first().isEmpty())
+    }
+
+    @Test
+    fun categoryDao_getCategory_noBudget_relationIsNull() = runBlocking {
+        dao.insert(groceries)
+        val id = dao.getAllCategories().first().first().category.id
+
+        val fetched = dao.getCategory(id).first()
+        assertNull(fetched?.budget)
+    }
+
+    @Test
+    fun categoryDao_getCategory_joinsBudgetThroughRelation() = runBlocking {
+        dao.insert(groceries)
+        val id = dao.getAllCategories().first().first().category.id
+        budgetDao.upsert(BudgetEntity(categoryId = id, monthlyAmount = 250.0))
+
+        val fetched = dao.getCategory(id).first()
+        assertEquals(250.0, fetched?.budget?.monthlyAmount)
     }
 
     @Test(expected = SQLiteConstraintException::class)
