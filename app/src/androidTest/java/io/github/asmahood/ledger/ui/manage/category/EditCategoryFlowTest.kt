@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -69,6 +70,42 @@ class EditCategoryFlowTest {
             composeRule.onAllNodesWithText(updatedName).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText(updatedName).assertIsDisplayed()
+    }
+
+    @Test
+    fun editCategory_enterBudgetThenClearIt_savesEachTime() {
+        val categoryName = "Budget Edit Category"
+
+        createCategory(categoryName)
+
+        // Open the Edit screen and wait for the form to populate.
+        composeRule.onNodeWithText(categoryName).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Enter a monthly budget and save.
+        composeRule.onNodeWithText("Budget").performTextInput("300.00")
+        composeRule.onNodeWithText("Save").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Reopen the Edit screen; the budget field is prefilled with the saved amount.
+        composeRule.onNodeWithText(categoryName).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("300.00").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Clear the budget by emptying the field and save again.
+        composeRule.onNodeWithText("300.00").performTextClearance()
+        composeRule.onNodeWithText("Save").performClick()
+
+        // Clearing is a valid save; we navigate back to Manage with the category intact.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText(categoryName).assertIsDisplayed()
     }
 
     @Test
