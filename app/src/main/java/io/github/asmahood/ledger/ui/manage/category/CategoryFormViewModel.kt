@@ -37,7 +37,7 @@ class CategoryFormViewModel @Inject constructor(
     init {
         if (categoryId != null) {
             loadCategory(categoryId)
-            observerMonthlyStats(categoryId)
+            observeMonthlyStats(categoryId)
         }
     }
 
@@ -67,13 +67,13 @@ class CategoryFormViewModel @Inject constructor(
         }
     }
 
-        private fun observerMonthlyStats(categoryId: Long) {
-            viewModelScope.launch {
-                transactionRepository.getMonthlyAmountStatsStream(categoryId).collect { stats ->
-                    _uiState.update { it.copy(monthlyStats = stats, isStatsLoaded = true) }
-                }
+    private fun observeMonthlyStats(categoryId: Long) {
+        viewModelScope.launch {
+            transactionRepository.getMonthlyAmountStatsStream(categoryId).collect { stats ->
+                _uiState.update { it.copy(monthlyStats = stats, isStatsLoaded = true) }
             }
         }
+    }
 
     fun updateName(value: String) {
         _uiState.update { it.copy(name = value) }
