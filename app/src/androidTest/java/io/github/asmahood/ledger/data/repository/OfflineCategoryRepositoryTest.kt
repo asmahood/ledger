@@ -28,7 +28,7 @@ class OfflineCategoryRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, LedgerDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = OfflineCategoryRepository(db.categoryDao(), db.budgetDao())
+        repository = OfflineCategoryRepository(db, db.categoryDao(), db.budgetDao())
     }
 
     @After

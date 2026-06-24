@@ -1,6 +1,8 @@
 package io.github.asmahood.ledger.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
+import androidx.room.withTransaction
+import io.github.asmahood.ledger.data.db.LedgerDatabase
 import io.github.asmahood.ledger.data.db.dao.BudgetDao
 import io.github.asmahood.ledger.data.db.dao.CategoryDao
 import io.github.asmahood.ledger.data.db.entity.BudgetEntity
@@ -25,9 +27,12 @@ interface CategoryRepository {
     suspend fun updateCategory(category: Category)
     suspend fun deleteCategory(category: Category)
     suspend fun setBudget(categoryId: Long, amount: Double?)
+    suspend fun insertCategoryWithBudget(category: Category, budgetAmount: Double?)
+    suspend fun updateCategoryWithBudget(category: Category, budgetAmount: Double?)
 }
 
 class OfflineCategoryRepository @Inject constructor(
+    private val database: LedgerDatabase,
     private val categoryDao: CategoryDao,
     private val budgetDao: BudgetDao,
 ) :
@@ -69,5 +74,19 @@ class OfflineCategoryRepository @Inject constructor(
         }
 
         return budgetDao.deleteByCategory(categoryId)
+    }
+
+    override suspend fun insertCategoryWithBudget(category: Category, budgetAmount: Double?) {
+        database.withTransaction {
+            val id = insertCategory(category)
+            setBudget(id, budgetAmount)
+        }
+    }
+
+    override suspend fun updateCategoryWithBudget(category: Category, budgetAmount: Double?) {
+        database.withTransaction {
+            updateCategory(category)
+            setBudget(category.id, budgetAmount)
+        }
     }
 }

@@ -25,7 +25,6 @@ fun CategoryFormUiState.toCategory(): Category {
         name = this.name,
         type = this.type,
         description = this.description.ifBlank { null },
-        budget = budgetAmount()
     )
 }
 
