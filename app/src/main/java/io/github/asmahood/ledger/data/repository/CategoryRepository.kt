@@ -1,7 +1,10 @@
 package io.github.asmahood.ledger.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
+import io.github.asmahood.ledger.data.db.dao.BudgetDao
 import io.github.asmahood.ledger.data.db.dao.CategoryDao
+import io.github.asmahood.ledger.data.db.entity.BudgetEntity
+import io.github.asmahood.ledger.data.db.relation.CategoryWithBudget
 import io.github.asmahood.ledger.data.mapper.toEntity
 import io.github.asmahood.ledger.data.mapper.toModel
 import io.github.asmahood.ledger.data.model.Category
@@ -18,24 +21,28 @@ class DuplicateCategoryException(message: String) : Exception(message)
 interface CategoryRepository {
     fun getAllCategoriesStream(): Flow<List<Category>>
     fun getCategoryStream(id: Long): Flow<Category?>
-    suspend fun insertCategory(category: Category)
+    suspend fun insertCategory(category: Category): Long
     suspend fun updateCategory(category: Category)
     suspend fun deleteCategory(category: Category)
+    suspend fun setBudget(categoryId: Long, amount: Double?)
 }
 
-class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao) :
+class OfflineCategoryRepository @Inject constructor(
+    private val categoryDao: CategoryDao,
+    private val budgetDao: BudgetDao,
+) :
     CategoryRepository {
     override fun getAllCategoriesStream(): Flow<List<Category>> {
-        return dao.getAllCategories().map { entities -> entities.map { it.toModel() } }
+        return categoryDao.getAllCategories().map { entities -> entities.map { it.toModel() } }
     }
 
     override fun getCategoryStream(id: Long): Flow<Category?> {
-        return dao.getCategory(id).map { it?.toModel() }
+        return categoryDao.getCategory(id).map { it?.toModel() }
     }
 
-    override suspend fun insertCategory(category: Category) {
+    override suspend fun insertCategory(category: Category): Long {
         try {
-            dao.insert(category.toEntity())
+            return categoryDao.insert(category.toEntity())
         } catch (e: SQLiteConstraintException) {
             throw DuplicateCategoryException("A category named \"${category.name}\" already exists")
         }
@@ -43,13 +50,24 @@ class OfflineCategoryRepository @Inject constructor(private val dao: CategoryDao
 
     override suspend fun updateCategory(category: Category) {
         try {
-            return dao.update(category.toEntity())
+            return categoryDao.update(category.toEntity())
         } catch (e: SQLiteConstraintException) {
             throw DuplicateCategoryException("A category named \"${category.name}\" already exists")
         }
     }
 
     override suspend fun deleteCategory(category: Category) {
-        return dao.delete(category.toEntity())
+        return categoryDao.delete(category.toEntity())
+    }
+
+    override suspend fun setBudget(categoryId: Long, amount: Double?) {
+        if (amount != null) {
+            return budgetDao.upsert(BudgetEntity(
+                categoryId = categoryId,
+                monthlyAmount = amount
+            ))
+        }
+
+        return budgetDao.deleteByCategory(categoryId)
     }
 }
