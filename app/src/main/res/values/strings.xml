@@ -42,4 +42,7 @@
     <string name="edit_transaction">Edit Transaction</string>
     <string name="day_header_today">Today</string>
     <string name="day_header_yesterday">Yesterday</string>
+    <string name="budget">Budget</string>
+    <string name="mo">/mo</string>
+    <string name="budget_placeholder">100.00</string>
 </resources>

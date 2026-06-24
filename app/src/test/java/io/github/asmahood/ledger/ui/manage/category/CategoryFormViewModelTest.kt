@@ -226,6 +226,122 @@ class CategoryFormViewModelTest {
         }
     }
 
+    // ── Budget ────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun editMode_initialState_prefillsBudgetFromCategory() {
+        val category = Category(
+            id = 5L,
+            name = "Groceries",
+            type = TransactionType.EXPENSE,
+            budget = 42.5,
+        )
+        val vm = editViewModel(category)
+
+        assertEquals("42.50", vm.uiState.value.budget)
+    }
+
+    @Test
+    fun editMode_initialState_nullBudget_mapsToEmptyString() {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE, budget = null)
+        val vm = editViewModel(category)
+
+        assertEquals("", vm.uiState.value.budget)
+    }
+
+    @Test
+    fun formViewModel_saveNewWithBudget_persistsBudgetForInsertedId() = runTest {
+        viewModel.updateName("Groceries")
+        viewModel.updateBudget("75.00")
+
+        viewModel.events.test {
+            viewModel.saveCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // FakeCategoryRepository assigns id 1 to the first inserted category.
+        assertEquals(1L to 75.0, repository.budgetCalls.single())
+        assertEquals(75.0, repository.budgets[1L])
+    }
+
+    @Test
+    fun editMode_saveWithBudget_persistsBudgetForCategoryId() = runTest {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+        vm.updateBudget("120")
+
+        vm.events.test {
+            vm.saveCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(5L to 120.0, repository.budgetCalls.single())
+        assertEquals(120.0, repository.budgets[5L])
+    }
+
+    @Test
+    fun editMode_clearBudget_persistsNull() = runTest {
+        val category = Category(
+            id = 5L,
+            name = "Groceries",
+            type = TransactionType.EXPENSE,
+            budget = 50.0,
+        )
+        val vm = editViewModel(category)
+        // Prefilled from the loaded category; emptying the field clears the budget.
+        assertEquals("50.00", vm.uiState.value.budget)
+        vm.updateBudget("")
+
+        vm.events.test {
+            vm.saveCategory()
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(5L to null, repository.budgetCalls.single())
+        assertNull(repository.budgets[5L])
+    }
+
+    @Test
+    fun formViewModel_invalidBudget_blocksSave() = runTest {
+        viewModel.updateName("Groceries")
+        viewModel.updateBudget("not a number")
+
+        assertFalse(viewModel.uiState.value.isFormValid)
+
+        viewModel.events.test {
+            viewModel.saveCategory()
+            expectNoEvents()
+        }
+        assertTrue(repository.inserted.isEmpty())
+        assertTrue(repository.budgetCalls.isEmpty())
+    }
+
+    @Test
+    fun formViewModel_negativeBudget_blocksSave() = runTest {
+        viewModel.updateName("Groceries")
+        viewModel.updateBudget("-10")
+
+        assertFalse(viewModel.uiState.value.isFormValid)
+
+        viewModel.events.test {
+            viewModel.saveCategory()
+            expectNoEvents()
+        }
+        assertTrue(repository.inserted.isEmpty())
+    }
+
+    @Test
+    fun formViewModel_blankBudgetWithName_isValid() {
+        viewModel.updateName("Groceries")
+
+        // Budget is optional: a blank budget with a valid name leaves the form valid.
+        assertEquals("", viewModel.uiState.value.budget)
+        assertTrue(viewModel.uiState.value.isFormValid)
+    }
+
     // ── Delete ──────────────────────────────────────────────────────────────────
 
     @Test

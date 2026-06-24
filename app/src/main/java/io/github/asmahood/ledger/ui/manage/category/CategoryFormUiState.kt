@@ -8,8 +8,15 @@ data class CategoryFormUiState(
     val name: String = "",
     val description: String = "",
     val type: TransactionType = TransactionType.EXPENSE,
+    val budget: String = "",
 ) {
-    val isFormValid: Boolean get() = name.isNotBlank()
+    val isFormValid: Boolean
+        get() {
+            if (name.isBlank()) return false
+            if (budget.isBlank()) return true
+            val budgetAmount = budget.toDoubleOrNull()
+            return budgetAmount != null && budgetAmount.isFinite() && budgetAmount >= 0.0
+        }
 }
 
 fun CategoryFormUiState.toCategory(): Category {
@@ -17,6 +24,8 @@ fun CategoryFormUiState.toCategory(): Category {
         id = this.id,
         name = this.name,
         type = this.type,
-        description = this.description.ifBlank { null }
+        description = this.description.ifBlank { null },
     )
 }
+
+fun CategoryFormUiState.budgetAmount(): Double? = budget.toDoubleOrNull()
