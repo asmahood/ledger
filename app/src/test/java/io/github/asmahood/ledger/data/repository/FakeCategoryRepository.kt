@@ -23,6 +23,9 @@ class FakeCategoryRepository : CategoryRepository {
     /** In-memory budget storage keyed by category id; mirrors what [setBudget] persists. */
     val budgets = mutableMapOf<Long, Double>()
 
+    /** Ordered record of every [setBudget] call, including clears (amount == null). */
+    val budgetCalls = mutableListOf<Pair<Long, Double?>>()
+
     private var nextId = 1L
 
     var streamError: Throwable? = null
@@ -59,6 +62,7 @@ class FakeCategoryRepository : CategoryRepository {
     }
 
     override suspend fun setBudget(categoryId: Long, amount: Double?) {
+        budgetCalls += categoryId to amount
         if (amount != null) {
             budgets[categoryId] = amount
         } else {
