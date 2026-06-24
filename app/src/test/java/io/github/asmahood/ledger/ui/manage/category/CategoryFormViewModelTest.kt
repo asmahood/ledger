@@ -3,9 +3,11 @@ package io.github.asmahood.ledger.ui.manage.category
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.asmahood.ledger.data.model.Category
+import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.DuplicateCategoryException
 import io.github.asmahood.ledger.data.repository.FakeCategoryRepository
+import io.github.asmahood.ledger.data.repository.FakeTransactionRepository
 import io.github.asmahood.ledger.rule.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -20,16 +22,18 @@ class CategoryFormViewModelTest {
     val dispatcherRule = TestDispatcherRule()
 
     private val repository = FakeCategoryRepository()
+    private val transactionRepository = FakeTransactionRepository()
 
     // Add-mode ViewModel (no categoryId in SavedStateHandle).
-    private val viewModel = CategoryFormViewModel(repository, SavedStateHandle())
+    private val viewModel = CategoryFormViewModel(repository, SavedStateHandle(), transactionRepository)
 
     // Creates an edit-mode ViewModel pre-loaded with an existing category.
     private fun editViewModel(category: Category): CategoryFormViewModel {
         repository.setCategories(listOf(category))
         return CategoryFormViewModel(
             repository,
-            SavedStateHandle(mapOf("categoryId" to category.id))
+            SavedStateHandle(mapOf("categoryId" to category.id)),
+            transactionRepository
         )
     }
 
@@ -218,7 +222,8 @@ class CategoryFormViewModelTest {
         // Category absent from repo — simulates deletion between navigation and ViewModel creation.
         val vm = CategoryFormViewModel(
             repository,
-            SavedStateHandle(mapOf("categoryId" to 99L))
+            SavedStateHandle(mapOf("categoryId" to 99L)),
+            transactionRepository
         )
 
         vm.events.test {
@@ -381,5 +386,50 @@ class CategoryFormViewModelTest {
 
         assertEquals(1, repository.deleted.size)
         assertEquals(5L, repository.deleted.single().id)
+    }
+
+    // ── Monthly stats ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun editMode_loadsMonthlyStatsIntoUiState() {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        transactionRepository.setMonthlyStats(
+            5L,
+            MonthlyAmountStats(average = 200.0, minimum = 100.0, maximum = 300.0),
+        )
+        val vm = editViewModel(category)
+
+        val state = vm.uiState.value
+        assertTrue(state.isStatsLoaded)
+        assertEquals(MonthlyAmountStats(200.0, 100.0, 300.0), state.monthlyStats)
+    }
+
+    @Test
+    fun editMode_noStats_marksLoadedWithNullStats() {
+        // No stats configured for this category, so the repository emits null
+        // (the "not enough data" case). The state is still flagged as loaded.
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        val vm = editViewModel(category)
+
+        val state = vm.uiState.value
+        assertTrue(state.isStatsLoaded)
+        assertNull(state.monthlyStats)
+    }
+
+    @Test
+    fun editMode_requestsStatsForLoadedCategory() {
+        val category = Category(id = 5L, name = "Groceries", type = TransactionType.EXPENSE)
+        editViewModel(category)
+
+        assertTrue(transactionRepository.monthlyStatsRequestedFor.contains(5L))
+    }
+
+    @Test
+    fun addMode_doesNotLoadStats() {
+        // Add mode (no categoryId): there is no history to average yet.
+        val state = viewModel.uiState.value
+        assertFalse(state.isStatsLoaded)
+        assertNull(state.monthlyStats)
+        assertTrue(transactionRepository.monthlyStatsRequestedFor.isEmpty())
     }
 }
