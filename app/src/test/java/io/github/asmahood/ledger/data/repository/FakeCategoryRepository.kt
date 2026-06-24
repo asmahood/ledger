@@ -72,4 +72,14 @@ class FakeCategoryRepository : CategoryRepository {
             if (it.id == categoryId) it.copy(budget = amount) else it
         }
     }
+
+    override suspend fun insertCategoryWithBudget(category: Category, budgetAmount: Double?) {
+        val id = insertCategory(category)
+        setBudget(id, budgetAmount)
+    }
+
+    override suspend fun updateCategoryWithBudget(category: Category, budgetAmount: Double?) {
+        updateCategory(category)
+        setBudget(category.id, budgetAmount)
+    }
 }
