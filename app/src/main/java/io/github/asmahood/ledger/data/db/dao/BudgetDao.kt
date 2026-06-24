@@ -12,7 +12,7 @@ interface BudgetDao {
     suspend fun upsert(budget: BudgetEntity)
 
     @Query("DELETE FROM budgets WHERE category_id = :categoryId")
-    fun deleteByCategory(categoryId: Long)
+    suspend fun deleteByCategory(categoryId: Long)
 
     @Query("SELECT * FROM budgets WHERE category_id = :categoryId")
     fun getByCategory(categoryId: Long): Flow<BudgetEntity?>

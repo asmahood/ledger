@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,6 +46,9 @@ class CategoryFormViewModel @Inject constructor(
                                 name = category.name,
                                 description = category.description ?: "",
                                 type = category.type,
+                                budget = category.budget?.let {
+                                    String.format(Locale.US, "%.2f", it)
+                                } ?: ""
                             )
                         }
                     } else {
@@ -69,6 +73,10 @@ class CategoryFormViewModel @Inject constructor(
         _uiState.update { it.copy(type = value) }
     }
 
+    fun updateBudget(value: String) {
+        _uiState.update { it.copy(budget = value) }
+    }
+
     fun saveCategory() {
         if (!_uiState.value.isFormValid || isSaving || isLoading) return
         isSaving = true
@@ -76,9 +84,11 @@ class CategoryFormViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 if (categoryId == null) {
-                    repository.insertCategory(_uiState.value.toCategory())
+                    val newCategoryId = repository.insertCategory(_uiState.value.toCategory())
+                    repository.setBudget(newCategoryId, _uiState.value.budgetAmount())
                 } else {
                     repository.updateCategory(_uiState.value.toCategory())
+                    repository.setBudget(categoryId, _uiState.value.budgetAmount())
                 }
                 _events.send(CategoryFormEvent.SavedSuccessfully)
             } catch (e: DuplicateCategoryException) {

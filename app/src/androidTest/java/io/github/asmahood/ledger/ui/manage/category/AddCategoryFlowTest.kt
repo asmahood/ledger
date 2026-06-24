@@ -50,4 +50,23 @@ class AddCategoryFlowTest {
         }
         composeRule.onNodeWithText(categoryName).assertIsDisplayed()
     }
+
+    @Test
+    fun addCategory_withBudget_savesAndAppearsInList() {
+        val categoryName = "Budgeted Category"
+
+        composeRule.onNodeWithText("Manage").performClick()
+        composeRule.onNodeWithContentDescription("Add Category").performClick()
+
+        // Fill in the name and a monthly budget, then save.
+        composeRule.onNodeWithText("Name").performTextInput(categoryName)
+        composeRule.onNodeWithText("Budget").performTextInput("250.00")
+        composeRule.onNodeWithText("Save").performClick()
+
+        // A valid budget does not block saving; the category lands back in the Manage list.
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText(categoryName).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText(categoryName).assertIsDisplayed()
+    }
 }

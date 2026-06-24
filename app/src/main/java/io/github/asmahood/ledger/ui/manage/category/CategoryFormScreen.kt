@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -29,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -57,6 +60,7 @@ fun CategoryFormScreen(
         onNameChange = viewModel::updateName,
         onDescriptionChange = viewModel::updateDescription,
         onTypeChange = viewModel::updateType,
+        onBudgetChange = viewModel::updateBudget,
         onSave = viewModel::saveCategory,
         onDelete = viewModel::deleteCategory,
         onNavigateBack = onNavigateBack,
@@ -83,6 +87,7 @@ fun CategoryFormContent(
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onTypeChange: (TransactionType) -> Unit,
+    onBudgetChange: (String) -> Unit,
     onSave: () -> Unit,
     onNavigateBack: () -> Unit,
     onDelete: () -> Unit,
@@ -137,12 +142,31 @@ fun CategoryFormContent(
                 value = uiState.name,
                 onValueChange = onNameChange,
                 label = { Text(stringResource(R.string.name)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next
+                )
             )
 
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = onDescriptionChange,
-                label = { Text(stringResource(R.string.description)) }
+                label = { Text(stringResource(R.string.description)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Next
+                )
+            )
+
+            OutlinedTextField(
+                value = uiState.budget,
+                onValueChange = onBudgetChange,
+                label = { Text(stringResource(R.string.budget)) },
+                prefix = { Text(stringResource(R.string.dollar_sign)) },
+                suffix = { Text(stringResource(R.string.mo)) },
+                placeholder = { Text(stringResource(R.string.budget_placeholder)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true
             )
 
             Row(
@@ -171,7 +195,14 @@ fun CategoryFormContent(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text(text = stringResource(R.string.delete_category_title, uiState.name)) },
+                title = {
+                    Text(
+                        text = stringResource(
+                            R.string.delete_category_title,
+                            uiState.name
+                        )
+                    )
+                },
                 text = { Text(text = stringResource(R.string.delete_category_message)) },
                 confirmButton = {
                     TextButton(
@@ -207,6 +238,7 @@ fun CategoryFormContentComposable() {
             onNameChange = {},
             onDescriptionChange = {},
             onTypeChange = {},
+            onBudgetChange = {},
             onSave = {},
             onNavigateBack = {},
             onDelete = {}
@@ -229,6 +261,7 @@ fun CategoryFormContentEditComposable() {
             onNameChange = {},
             onDescriptionChange = {},
             onTypeChange = {},
+            onBudgetChange = {},
             onSave = {},
             onNavigateBack = {},
             onDelete = {}
