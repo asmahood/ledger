@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.asmahood.ledger.data.db.LedgerDatabase
+import io.github.asmahood.ledger.data.db.dao.BudgetDao
 import io.github.asmahood.ledger.data.db.dao.CategoryDao
 import io.github.asmahood.ledger.data.db.dao.TransactionDao
 
@@ -21,4 +22,7 @@ object DaoModule {
 
     @Provides
     fun provideTransactionDao(database: LedgerDatabase): TransactionDao = database.transactionDao()
+
+    @Provides
+    fun provideBudgetDao(database: LedgerDatabase): BudgetDao = database.budgetDao()
 }

@@ -42,7 +42,7 @@ class TransactionDaoTest {
         categoryDao.insert(
             CategoryEntity(name = "Groceries", description = "Food", type = TransactionType.EXPENSE.name),
         )
-        groceriesId = categoryDao.getAllCategories().first().first().id
+        groceriesId = categoryDao.getAllCategories().first().first().category.id
     }
 
     @After
@@ -162,7 +162,7 @@ class TransactionDaoTest {
     @Test(expected = SQLiteConstraintException::class)
     fun transactionDao_deletingReferencedCategory_throwsConstraintException() = runBlocking {
         dao.insert(transaction())
-        val category = categoryDao.getAllCategories().first().first()
+        val category = categoryDao.getAllCategories().first().first().category
 
         // The transaction's category has onDelete = RESTRICT, so this must fail.
         categoryDao.delete(category)
