@@ -47,5 +47,5 @@
     <string name="budget_placeholder">100.00</string>
     <string name="budget_supporting_text">Avg %1$s · Range %2$s–%3$s</string>
     <string name="budget_supporting_text_single">Avg %1$s</string>
-    <string name="average_not_enough_data">Not enough data to give an average monthly spend</string>
+    <string name="average_not_enough_data">Not enough data to give a monthly average</string>
 </resources>

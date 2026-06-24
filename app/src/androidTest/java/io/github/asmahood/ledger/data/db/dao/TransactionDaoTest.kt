@@ -242,4 +242,17 @@ class TransactionDaoTest {
         assertEquals(20.0, stats.minimum!!, 0.001)
         assertEquals(80.0, stats.maximum!!, 0.001)
     }
+
+    @Test
+    fun getMonthlyAmountStats_averagesOverTrackedSpanIncludingEmptyMonths() = runBlocking {
+        // Spend in Jan and Jun with empty months in between: the average divides the
+        // $900 total by the full 6-month span, while min/max stay over active months.
+        dao.insert(transaction(amount = 600.0, date = LocalDate.of(2026, 1, 15)))
+        dao.insert(transaction(amount = 300.0, date = LocalDate.of(2026, 6, 10)))
+
+        val stats = dao.getMonthlyAmountStats(groceriesId).first()
+        assertEquals(150.0, stats.average!!, 0.001)
+        assertEquals(300.0, stats.minimum!!, 0.001)
+        assertEquals(600.0, stats.maximum!!, 0.001)
+    }
 }
