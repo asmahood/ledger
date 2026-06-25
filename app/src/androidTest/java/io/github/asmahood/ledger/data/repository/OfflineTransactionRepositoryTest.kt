@@ -136,4 +136,35 @@ class OfflineTransactionRepositoryTest {
 
         assertEquals(0, repository.getAllTransactionsStream().first().size)
     }
+
+    @Test
+    fun getPeriodTotalsStream_sumsIncomeAndExpensesWithinRange() = runBlocking {
+        repository.insertTransaction(
+            transaction(amount = 4000.0, date = LocalDate.of(2026, 6, 10), type = TransactionType.INCOME),
+        )
+        repository.insertTransaction(
+            transaction(amount = 1500.0, date = LocalDate.of(2026, 6, 12), type = TransactionType.EXPENSE),
+        )
+        // Outside the queried month, so it must not be counted.
+        repository.insertTransaction(
+            transaction(amount = 999.0, date = LocalDate.of(2026, 7, 1), type = TransactionType.EXPENSE),
+        )
+
+        val totals = repository.getPeriodTotalsStream(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30),
+        ).first()
+        assertEquals(4000.0, totals.income!!, 0.001)
+        assertEquals(1500.0, totals.expenses!!, 0.001)
+    }
+
+    @Test
+    fun getPeriodTotalsStream_noTransactionsInRange_returnsNulls() = runBlocking {
+        repository.insertTransaction(transaction(date = LocalDate.of(2026, 1, 1)))
+
+        val totals = repository.getPeriodTotalsStream(
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30),
+        ).first()
+        assertNull(totals.income)
+        assertNull(totals.expenses)
+    }
 }

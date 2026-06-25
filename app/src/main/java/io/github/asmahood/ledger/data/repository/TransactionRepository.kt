@@ -5,8 +5,10 @@ import io.github.asmahood.ledger.data.mapper.toEntity
 import io.github.asmahood.ledger.data.mapper.toModel
 import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 import javax.inject.Inject
 
 interface TransactionRepository {
@@ -16,6 +18,7 @@ interface TransactionRepository {
     suspend fun updateTransaction(transaction: Transaction)
     suspend fun deleteTransaction(transaction: Transaction)
     fun getMonthlyAmountStatsStream(categoryId: Long): Flow<MonthlyAmountStats?>
+    fun getPeriodTotalsStream(start: LocalDate, end: LocalDate): Flow<PeriodTotals>
 }
 
 class OfflineTransactionRepository @Inject constructor(private val dao: TransactionDao) :
@@ -42,5 +45,9 @@ class OfflineTransactionRepository @Inject constructor(private val dao: Transact
 
     override fun getMonthlyAmountStatsStream(categoryId: Long): Flow<MonthlyAmountStats?> {
         return dao.getMonthlyAmountStats(categoryId).map { it.toModel() }
+    }
+
+    override fun getPeriodTotalsStream(start: LocalDate, end: LocalDate): Flow<PeriodTotals> {
+        return dao.getPeriodTotals(start, end)
     }
 }

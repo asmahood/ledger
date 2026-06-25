@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.ui.theme.figureStyle
 import io.github.asmahood.ledger.util.formatCurrency
 
 /**
@@ -25,7 +26,7 @@ fun AmountPill(amount: Double?, modifier: Modifier = Modifier, suffix: String = 
     ) {
         Text(
             text = if (amount != null) "${formatCurrency(amount)}$suffix" else "-",
-            style = MaterialTheme.typography.labelMedium,
+            style = figureStyle(MaterialTheme.typography.labelMedium),
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
         )
