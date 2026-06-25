@@ -38,6 +38,7 @@ import io.github.asmahood.ledger.ui.components.ErrorState
 import io.github.asmahood.ledger.ui.components.LoadingState
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.ui.theme.figureFontFamily
 import io.github.asmahood.ledger.util.formatCurrency
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -189,7 +190,7 @@ private fun SignedAmount(transaction: Transaction, modifier: Modifier = Modifier
         else MaterialTheme.colorScheme.error
     Text(
         text = formatSigned(value),
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelLarge.copy(fontFamily = figureFontFamily),
         fontWeight = FontWeight.SemiBold,
         color = color,
         modifier = modifier,
