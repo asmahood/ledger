@@ -26,6 +26,14 @@ val displayFontFamily = FontFamily(
     )
 )
 
+/** Tabular monospaced face for money figures, so digits line up column-to-column. */
+val figureFontFamily = FontFamily(
+    Font(
+        googleFont = GoogleFont("JetBrains Mono"),
+        fontProvider = provider,
+    )
+)
+
 // Default Material 3 typography values
 val baseline = Typography()
 
