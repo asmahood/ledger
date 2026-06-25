@@ -47,5 +47,7 @@ class OfflineTransactionRepository @Inject constructor(private val dao: Transact
         return dao.getMonthlyAmountStats(categoryId).map { it.toModel() }
     }
 
-
+    override fun getPeriodTotalsStream(start: LocalDate, end: LocalDate): Flow<PeriodTotals> {
+        return dao.getPeriodTotals(start, end)
+    }
 }

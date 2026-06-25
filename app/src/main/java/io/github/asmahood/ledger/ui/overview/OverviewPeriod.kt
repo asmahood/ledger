@@ -5,7 +5,7 @@ import io.github.asmahood.ledger.R
 import java.time.LocalDate
 import java.time.YearMonth
 
-enum class OverviewPeriod(@StringRes label: Int) {
+enum class OverviewPeriod(@StringRes val label: Int) {
     THIS_MONTH(R.string.period_this_month),
     LAST_MONTH(R.string.period_last_month),
     THREE_MONTHS(R.string.period_3_months),

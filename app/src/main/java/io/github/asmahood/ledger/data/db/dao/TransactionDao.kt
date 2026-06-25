@@ -51,7 +51,7 @@ interface TransactionDao {
     @Query("""
         SELECT
             SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END) AS income,
-            SUM(CASE when type = 'EXPENSE' THEN amount ELSE 0 END) AS expense
+            SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END) AS expenses
         FROM transactions
         WHERE date BETWEEN :start AND :end
     """)
