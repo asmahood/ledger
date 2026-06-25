@@ -10,7 +10,9 @@ import androidx.room.Update
 import io.github.asmahood.ledger.data.db.entity.TransactionEntity
 import io.github.asmahood.ledger.data.db.relation.TransactionWithCategory
 import io.github.asmahood.ledger.data.projection.CategoryMonthlyAmountStats
+import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface TransactionDao {
@@ -45,4 +47,13 @@ interface TransactionDao {
         )
     """)
     fun getMonthlyAmountStats(categoryId: Long): Flow<CategoryMonthlyAmountStats>
+
+    @Query("""
+        SELECT
+            SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END) AS income,
+            SUM(CASE when type = 'EXPENSE' THEN amount ELSE 0 END) AS expense
+        FROM transactions
+        WHERE date BETWEEN :start AND :end
+    """)
+    fun getPeriodTotals(start: LocalDate, end: LocalDate): Flow<PeriodTotals>
 }
