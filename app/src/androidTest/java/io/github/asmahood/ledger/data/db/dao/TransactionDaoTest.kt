@@ -255,4 +255,61 @@ class TransactionDaoTest {
         assertEquals(300.0, stats.minimum!!, 0.001)
         assertEquals(600.0, stats.maximum!!, 0.001)
     }
+
+    // ── Period totals ─────────────────────────────────────────────────────────────
+
+    private val periodStart = LocalDate.of(2026, 6, 1)
+    private val periodEnd = LocalDate.of(2026, 6, 30)
+
+    @Test
+    fun getPeriodTotals_sumsIncomeAndExpensesSeparately() = runBlocking {
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 6, 10), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 1000.0, date = LocalDate.of(2026, 6, 12), type = TransactionType.EXPENSE))
+        dao.insert(transaction(amount = 500.0, date = LocalDate.of(2026, 6, 15), type = TransactionType.EXPENSE))
+
+        val totals = dao.getPeriodTotals(periodStart, periodEnd).first()
+        assertEquals(4000.0, totals.income!!, 0.001)
+        assertEquals(1500.0, totals.expenses!!, 0.001)
+    }
+
+    @Test
+    fun getPeriodTotals_excludesTransactionsOutsideRange() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 5, 31), type = TransactionType.EXPENSE))
+        dao.insert(transaction(amount = 200.0, date = LocalDate.of(2026, 6, 15), type = TransactionType.EXPENSE))
+        dao.insert(transaction(amount = 300.0, date = LocalDate.of(2026, 7, 1), type = TransactionType.EXPENSE))
+
+        val totals = dao.getPeriodTotals(periodStart, periodEnd).first()
+        assertEquals(200.0, totals.expenses!!, 0.001)
+    }
+
+    @Test
+    fun getPeriodTotals_boundsAreInclusive() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = periodStart, type = TransactionType.EXPENSE))
+        dao.insert(transaction(amount = 200.0, date = periodEnd, type = TransactionType.EXPENSE))
+
+        val totals = dao.getPeriodTotals(periodStart, periodEnd).first()
+        assertEquals(300.0, totals.expenses!!, 0.001)
+    }
+
+    @Test
+    fun getPeriodTotals_rangeWithOnlyExpenses_incomeIsZeroNotNull() = runBlocking {
+        // With matching rows present, the conditional SUM evaluates to 0 for the absent type
+        // rather than NULL, so income is 0.0 here (NULL only happens with no matching rows).
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 6, 15), type = TransactionType.EXPENSE))
+
+        val totals = dao.getPeriodTotals(periodStart, periodEnd).first()
+        assertEquals(0.0, totals.income!!, 0.001)
+        assertEquals(100.0, totals.expenses!!, 0.001)
+    }
+
+    @Test
+    fun getPeriodTotals_noRowsInRange_returnsNulls() = runBlocking {
+        // A row exists in the table but falls outside the range, so the query matches zero
+        // rows and both sums aggregate to NULL.
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 1), type = TransactionType.EXPENSE))
+
+        val totals = dao.getPeriodTotals(periodStart, periodEnd).first()
+        assertNull(totals.income)
+        assertNull(totals.expenses)
+    }
 }

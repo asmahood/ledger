@@ -56,7 +56,7 @@ fun OverviewScreen(
 }
 
 @Composable
-private fun OverviewContent(
+internal fun OverviewContent(
     uiState: OverviewUiState,
     selectedPeriod: OverviewPeriod,
     onPeriodSelected: (OverviewPeriod) -> Unit,
