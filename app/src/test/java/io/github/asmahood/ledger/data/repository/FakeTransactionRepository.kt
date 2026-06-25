@@ -2,10 +2,12 @@ package io.github.asmahood.ledger.data.repository
 
 import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 
 /**
  * Controllable fake for [TransactionRepository] used in ViewModel unit tests.
@@ -19,11 +21,13 @@ import kotlinx.coroutines.flow.map
 class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val monthlyStats = MutableStateFlow<Map<Long, MonthlyAmountStats?>>(emptyMap())
+    private val periodTotals = MutableStateFlow(PeriodTotals(income = null, expenses = null))
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
     val deleted = mutableListOf<Transaction>()
     val monthlyStatsRequestedFor = mutableListOf<Long>()
+    val periodTotalsRequestedFor = mutableListOf<Pair<LocalDate, LocalDate>>()
 
     var streamError: Throwable? = null
     var insertError: Throwable? = null
@@ -36,6 +40,10 @@ class FakeTransactionRepository : TransactionRepository {
 
     fun setMonthlyStats(categoryId: Long, stats: MonthlyAmountStats?) {
         monthlyStats.value = monthlyStats.value + (categoryId to stats)
+    }
+
+    fun setPeriodTotals(totals: PeriodTotals) {
+        periodTotals.value = totals
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -66,5 +74,10 @@ class FakeTransactionRepository : TransactionRepository {
     override fun getMonthlyAmountStatsStream(categoryId: Long): Flow<MonthlyAmountStats?> {
         monthlyStatsRequestedFor += categoryId
         return monthlyStats.map { it[categoryId] }
+    }
+
+    override fun getPeriodTotalsStream(start: LocalDate, end: LocalDate): Flow<PeriodTotals> {
+        periodTotalsRequestedFor += start to end
+        return streamError?.let { error -> flow<PeriodTotals> { throw error } } ?: periodTotals
     }
 }
