@@ -48,4 +48,15 @@
     <string name="budget_supporting_text">Avg %1$s · Range %2$s–%3$s</string>
     <string name="budget_supporting_text_single">Avg %1$s</string>
     <string name="average_not_enough_data">Not enough data to give a monthly average</string>
+    <string name="period_this_month">This Month</string>
+    <string name="period_last_month">Last Month</string>
+    <string name="period_3_months">3 Months</string>
+    <string name="period_6_months">6 Months</string>
+    <string name="period_last_year">Last Year</string>
+    <string name="period_ytd">YTD</string>
+    <string name="period_all">All</string>
+    <string name="saved">Saved</string>
+    <string name="loading_summary">Loading summary...</string>
+    <string name="couldnt_load_summary">Couldn\'t load summary</string>
+    <string name="percent_of_income">%1$d%% of income</string>
 </resources>
