@@ -24,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -36,7 +35,7 @@ import io.github.asmahood.ledger.ui.components.ErrorState
 import io.github.asmahood.ledger.ui.components.LoadingState
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
-import io.github.asmahood.ledger.ui.theme.figureFontFamily
+import io.github.asmahood.ledger.ui.theme.figureStyle
 import io.github.asmahood.ledger.util.formatCurrency
 
 @Composable
@@ -80,7 +79,7 @@ internal fun OverviewContent(
             )
 
             is OverviewUiState.Success -> LazyColumn(
-                modifier = Modifier.padding(contentPadding),
+                modifier = contentModifier,
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -214,9 +213,6 @@ private fun SummaryEyebrow(text: String, modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
-
-@Composable
-private fun figureStyle(style: TextStyle) = style.copy(fontFamily = figureFontFamily)
 
 @PreviewLightDark
 @Composable

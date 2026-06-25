@@ -62,4 +62,22 @@ class OverviewSummaryTest {
         assertEquals(100, summary.savedPercentOfIncome)
         assertFalse(summary.isNegativeSaved)
     }
+
+    @Test
+    fun toSummary_incomeOnlyZeroExpenses_matchesNullExpenses() {
+        // The DAO returns expenses = 0.0 (not null) when rows exist but none are expenses.
+        val summary = PeriodTotals(income = 2000.0, expenses = 0.0).toSummary()
+
+        assertEquals(2000.0, summary.saved, 0.0)
+        assertEquals(0, summary.expensesPercentOfIncome)
+        assertEquals(100, summary.savedPercentOfIncome)
+        assertFalse(summary.isNegativeSaved)
+    }
+
+    @Test
+    fun toSummary_extremeRatio_percentClampedToIntRange() {
+        val summary = PeriodTotals(income = 1.0, expenses = 1_000_000_000.0).toSummary()
+
+        assertEquals(Int.MAX_VALUE, summary.expensesPercentOfIncome)
+    }
 }

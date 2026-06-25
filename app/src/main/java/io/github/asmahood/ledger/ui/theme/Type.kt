@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
@@ -33,6 +34,8 @@ val figureFontFamily = FontFamily(
         fontProvider = provider,
     )
 )
+
+fun figureStyle(style: TextStyle): TextStyle = style.copy(fontFamily = figureFontFamily)
 
 // Default Material 3 typography values
 val baseline = Typography()
