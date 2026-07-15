@@ -2,6 +2,7 @@ package io.github.asmahood.ledger.data.repository
 
 import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +23,14 @@ class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val monthlyStats = MutableStateFlow<Map<Long, MonthlyAmountStats?>>(emptyMap())
     private val periodTotals = MutableStateFlow(PeriodTotals(income = null, expenses = null))
+    private val categoryMonthlyTotals = MutableStateFlow<List<CategoryMonthSpend>>(emptyList())
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
     val deleted = mutableListOf<Transaction>()
     val monthlyStatsRequestedFor = mutableListOf<Long>()
     val periodTotalsRequestedFor = mutableListOf<Pair<LocalDate, LocalDate>>()
+    val categoryMonthlyTotalsRequestedFor = mutableListOf<Pair<LocalDate, LocalDate>>()
 
     var streamError: Throwable? = null
     var insertError: Throwable? = null
@@ -44,6 +47,10 @@ class FakeTransactionRepository : TransactionRepository {
 
     fun setPeriodTotals(totals: PeriodTotals) {
         periodTotals.value = totals
+    }
+
+    fun setCategoryMonthlyTotals(totals: List<CategoryMonthSpend>) {
+        categoryMonthlyTotals.value = totals
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -79,5 +86,13 @@ class FakeTransactionRepository : TransactionRepository {
     override fun getPeriodTotalsStream(start: LocalDate, end: LocalDate): Flow<PeriodTotals> {
         periodTotalsRequestedFor += start to end
         return streamError?.let { error -> flow<PeriodTotals> { throw error } } ?: periodTotals
+    }
+
+    override fun getMonthlyCategoryTotalsStream(
+        start: LocalDate,
+        end: LocalDate
+    ): Flow<List<CategoryMonthSpend>> {
+        categoryMonthlyTotalsRequestedFor += start to end
+        return streamError?.let { error -> flow { throw error } } ?: categoryMonthlyTotals
     }
 }
