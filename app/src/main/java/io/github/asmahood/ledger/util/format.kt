@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 
 /** Display/parse format for transaction dates (e.g. 06/21/2026). */
 val transactionDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+val chartMonthLabel: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM ''yy")
 
 fun formatCurrency(amount: Double): String {
     return NumberFormat.getCurrencyInstance().format(amount)

@@ -312,4 +312,111 @@ class TransactionDaoTest {
         assertNull(totals.income)
         assertNull(totals.expenses)
     }
+
+    // ── Monthly category totals ───────────────────────────────────────────────────
+
+    private suspend fun seedCategory(name: String): Long {
+        categoryDao.insert(
+            CategoryEntity(name = name, description = null, type = TransactionType.EXPENSE.name),
+        )
+        return categoryDao.getAllCategories().first().first { it.category.name == name }.category.id
+    }
+
+    private val quarterStart = LocalDate.of(2026, 1, 1)
+    private val quarterEnd = LocalDate.of(2026, 3, 31)
+
+    @Test
+    fun getMonthlyCategoryTotals_sumsExpensesPerCategoryPerMonth() = runBlocking {
+        dao.insert(transaction(amount = 20.0, date = LocalDate.of(2026, 1, 5)))
+        dao.insert(transaction(amount = 30.0, date = LocalDate.of(2026, 1, 20)))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        val january = rows.single()
+        assertEquals(groceriesId, january.categoryId)
+        assertEquals("Groceries", january.categoryName)
+        assertEquals(2026, january.year)
+        assertEquals(1, january.month)
+        assertEquals(50.0, january.total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_separatesMonthsWithinCategory() = runBlocking {
+        dao.insert(transaction(amount = 80.0, date = LocalDate.of(2026, 1, 31)))
+        dao.insert(transaction(amount = 20.0, date = LocalDate.of(2026, 2, 1)))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        // Adjacent days across the month boundary must land in separate buckets.
+        assertEquals(2, rows.size)
+        assertEquals(1 to 80.0, rows[0].month to rows[0].total)
+        assertEquals(2 to 20.0, rows[1].month to rows[1].total)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_excludesIncome() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.EXPENSE))
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        // Only the expense is aggregated; income is filtered out entirely.
+        assertEquals(100.0, rows.single().total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_excludesTransactionsOutsideRange() = runBlocking {
+        dao.insert(transaction(amount = 10.0, date = LocalDate.of(2025, 12, 31)))
+        dao.insert(transaction(amount = 20.0, date = LocalDate.of(2026, 2, 15)))
+        dao.insert(transaction(amount = 30.0, date = LocalDate.of(2026, 4, 1)))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        assertEquals(20.0, rows.single().total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_boundsAreInclusive() = runBlocking {
+        dao.insert(transaction(amount = 10.0, date = quarterStart))
+        dao.insert(transaction(amount = 20.0, date = quarterEnd))
+
+        val total = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first().sumOf { it.total }
+        assertEquals(30.0, total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_keepsCategoriesSeparate() = runBlocking {
+        val rentId = seedCategory("Rent")
+        dao.insert(transaction(amount = 50.0, date = LocalDate.of(2026, 1, 10)))
+        dao.insert(transaction(amount = 1500.0, date = LocalDate.of(2026, 1, 10), categoryId = rentId))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        assertEquals(2, rows.size)
+        assertEquals(50.0, rows.first { it.categoryId == groceriesId }.total, 0.001)
+        assertEquals(1500.0, rows.first { it.categoryId == rentId }.total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_orderedByYearThenMonthThenName() = runBlocking {
+        val rentId = seedCategory("Rent")
+        // Insert out of order; the query must sort by (year, month, category name).
+        dao.insert(transaction(amount = 1500.0, date = LocalDate.of(2026, 2, 1), categoryId = rentId))
+        dao.insert(transaction(amount = 50.0, date = LocalDate.of(2026, 1, 10)))
+        dao.insert(transaction(amount = 60.0, date = LocalDate.of(2026, 1, 10), categoryId = rentId))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        val order = rows.map { Triple(it.month, it.categoryName, it.total) }
+        assertEquals(
+            listOf(
+                Triple(1, "Groceries", 50.0),
+                Triple(1, "Rent", 60.0),
+                Triple(2, "Rent", 1500.0),
+            ),
+            order,
+        )
+    }
+
+    @Test
+    fun getMonthlyCategoryTotals_noRowsInRange_returnsEmpty() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2025, 1, 1)))
+
+        val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
+        assertTrue(rows.isEmpty())
+    }
 }
