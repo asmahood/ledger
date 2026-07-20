@@ -2,27 +2,41 @@ package io.github.asmahood.ledger.ui.overview
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -30,6 +44,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
+import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
+import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.component.LineComponent
 import io.github.asmahood.ledger.R
 import io.github.asmahood.ledger.ui.components.ErrorState
 import io.github.asmahood.ledger.ui.components.LoadingState
@@ -50,6 +75,7 @@ fun OverviewScreen(
         uiState = uiState,
         selectedPeriod = selectedPeriod,
         onPeriodSelected = viewModel::onPeriodSelected,
+        onCategoryToggled = viewModel::onCategoryToggled,
         modifier = modifier
     )
 }
@@ -59,6 +85,7 @@ internal fun OverviewContent(
     uiState: OverviewUiState,
     selectedPeriod: OverviewPeriod,
     onPeriodSelected: (OverviewPeriod) -> Unit,
+    onCategoryToggled: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -106,6 +133,16 @@ internal fun OverviewContent(
                             .padding(horizontal = 16.dp)
                     )
                 }
+
+                item {
+                    CategorySpendChartCard(
+                        chart = uiState.categorySpendChart,
+                        onCategoryToggled = onCategoryToggled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
             }
         }
 
@@ -125,10 +162,26 @@ private fun OverviewScreenPreview() {
                     saved = 1100.0,
                     expensesPercentOfIncome = 74,
                     savedPercentOfIncome = 26
+                ),
+                categorySpendChart = CategorySpendChart(
+                    monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+                    series = listOf(
+                        CategorySeries(
+                            categoryId = 1,
+                            categoryName = "Gas",
+                            amounts = listOf(56.0, 45.85, 73.22)
+                        ),
+                        CategorySeries(
+                            categoryId = 2,
+                            categoryName = "Rent",
+                            amounts = listOf(1500.0, 1500.0, 1500.0)
+                        )
+                    )
                 )
             ),
             selectedPeriod = OverviewPeriod.THIS_MONTH,
-            onPeriodSelected = {}
+            onPeriodSelected = {},
+            onCategoryToggled = {}
         )
     }
 }
@@ -249,5 +302,169 @@ private fun SummaryCardNegativePreview() {
                 modifier = Modifier.padding(16.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun CategorySpendChartCard(
+    chart: CategorySpendChart,
+    onCategoryToggled: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val modelProducer = remember { CartesianChartModelProducer() }
+    val visibleSeries = chart.series.filter { it.isVisible }
+    val visibleColors = visibleSeries.map { categoryColor(it.categoryId) }
+    val columnProvider = remember(visibleColors) {
+        ColumnCartesianLayer.ColumnProvider.series(
+            visibleColors.ifEmpty { listOf(Color.Transparent) }.map { color ->
+                LineComponent(Fill(color), 16.dp)
+            }
+        )
+    }
+
+    LaunchedEffect(chart) {
+        if (chart.monthLabels.isEmpty()) return@LaunchedEffect
+        modelProducer.runTransaction {
+            columnModel {
+                if (visibleSeries.isEmpty()) {
+                    series(y = List(chart.monthLabels.size) { 0.0 })
+                } else {
+                    visibleSeries.forEach { series ->
+                        series(y = series.amounts.map { it.toFloat() })
+                    }
+                }
+            }
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SummaryEyebrow("Expenses by category")
+
+                if (chart.series.isNotEmpty()) {
+                    var menuExpanded by remember { mutableStateOf(false) }
+
+                    Box {
+                        TextButton(onClick = { menuExpanded = true }) {
+                            Text("Categories")
+                            Icon(
+                                painter = painterResource(R.drawable.expand_more),
+                                contentDescription = null
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            chart.series.forEach { series ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(
+                                                checked = series.isVisible,
+                                                onCheckedChange = null
+                                            )
+                                            ColorSwatch(
+                                                color = categoryColor(series.categoryId),
+                                                modifier = Modifier.padding(start = 8.dp)
+                                            )
+                                            Text(
+                                                text = series.categoryName,
+                                                modifier = Modifier.padding(start = 8.dp)
+                                            )
+                                        }
+                                    },
+                                    onClick = { onCategoryToggled(series.categoryId) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            CartesianChartHost(
+                chart = rememberCartesianChart(
+                    rememberColumnCartesianLayer(
+                        columnProvider = columnProvider,
+                        mergeMode = { ColumnCartesianLayer.MergeMode.Stacked }
+                    ),
+                    startAxis = VerticalAxis.rememberStart(
+                        itemPlacer = remember { VerticalAxis.ItemPlacer.count(count = { 5 }) },
+                        valueFormatter = remember {
+                            CartesianValueFormatter { _, value, _ -> formatCurrency(value) }
+                        }
+                    ),
+                    bottomAxis = HorizontalAxis.rememberBottom(
+                        valueFormatter = remember(chart.monthLabels) {
+                            CartesianValueFormatter { _, x, _ ->
+                                chart.monthLabels.getOrNull(x.toInt())
+                                    ?: chart.monthLabels.lastOrNull()
+                                    ?: x.toInt().toString()
+                            }
+                        }
+                    )
+                ),
+                modelProducer = modelProducer,
+                modifier = Modifier.padding(top = 12.dp)
+            )
+
+            if (visibleSeries.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(top = 12.dp)
+                ) {
+                    visibleSeries.forEach { series ->
+                        LegendItem(
+                            name = series.categoryName,
+                            color = categoryColor(series.categoryId)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Derives a stable color from the category's identity rather than its position, so a category
+ * keeps the same color across periods and when other categories are added or removed. The golden
+ * angle (137.5°) spreads sequential ids across the hue wheel.
+ */
+private fun categoryColor(categoryId: Long): Color {
+    val hue = (categoryId * 137.5f) % 360f
+    return Color.hsl(hue, 0.55f, 0.50f)
+}
+
+@Composable
+private fun ColorSwatch(color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(12.dp)
+            .background(color, RoundedCornerShape(2.dp))
+    )
+}
+
+@Composable
+private fun LegendItem(name: String, color: Color, modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.padding(vertical = 4.dp)
+    ) {
+        ColorSwatch(color = color)
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(start = 6.dp)
+        )
     }
 }

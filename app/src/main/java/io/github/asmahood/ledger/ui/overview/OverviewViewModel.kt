@@ -3,16 +3,16 @@ package io.github.asmahood.ledger.ui.overview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.asmahood.ledger.data.projection.PeriodTotals
 import io.github.asmahood.ledger.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -23,12 +23,29 @@ class OverviewViewModel @Inject constructor(
     private val _selectedPeriod = MutableStateFlow(OverviewPeriod.THIS_MONTH)
     val selectedPeriod = _selectedPeriod.asStateFlow()
 
+    private val _hiddenCategoryIds = MutableStateFlow<Set<Long>>(emptySet())
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState = selectedPeriod.flatMapLatest { period ->
+    private val _periodData = selectedPeriod.flatMapLatest { period ->
         val range = period.toDateRange(LocalDate.now())
-        transactionRepository.getPeriodTotalsStream(range.start, range.endInclusive)
-    }.map<PeriodTotals, OverviewUiState> { totals ->
-        OverviewUiState.Success(totals.toSummary())
+        combine(
+            transactionRepository.getPeriodTotalsStream(range.start, range.endInclusive),
+            transactionRepository.getMonthlyCategoryTotalsStream(range.start, range.endInclusive)
+        ) { totals, categorySpend ->
+            PeriodData(
+                summary = totals.toSummary(),
+                chart = categorySpend.toCategorySpendChart(range.start, range.endInclusive)
+            )
+        }
+    }
+
+    val uiState = combine(_periodData, _hiddenCategoryIds) { data, hiddenIds ->
+        OverviewUiState.Success(
+            summary = data.summary,
+            categorySpendChart = data.chart.copy(
+                series = data.chart.series.map { it.copy(isVisible = it.categoryId !in hiddenIds) }
+            )
+        ) as OverviewUiState
     }.catch {
         emit(OverviewUiState.Error(it.message ?: "Unknown error occurred"))
     }.stateIn(
@@ -37,8 +54,21 @@ class OverviewViewModel @Inject constructor(
         initialValue = OverviewUiState.Loading
     )
 
+    /** Building the summary and chart is done once per period; toggling visibility only re-copies. */
+    private data class PeriodData(
+        val summary: OverviewSummary,
+        val chart: CategorySpendChart
+    )
 
     fun onPeriodSelected(period: OverviewPeriod) {
+        // A hidden category from the previous period shouldn't silently stay hidden in the next one.
+        _hiddenCategoryIds.value = emptySet()
         _selectedPeriod.value = period
+    }
+
+    fun onCategoryToggled(categoryId: Long) {
+        _hiddenCategoryIds.update { current ->
+            if (categoryId in current) current - categoryId else current + categoryId
+        }
     }
 }

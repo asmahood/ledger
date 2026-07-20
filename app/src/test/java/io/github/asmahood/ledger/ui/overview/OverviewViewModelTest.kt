@@ -1,11 +1,13 @@
 package io.github.asmahood.ledger.ui.overview
 
 import app.cash.turbine.test
+import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import io.github.asmahood.ledger.data.repository.FakeTransactionRepository
 import io.github.asmahood.ledger.rule.TestDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -100,5 +102,95 @@ class OverviewViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ── Category spend chart ──────────────────────────────────────────────────────
+
+    private fun spend(categoryId: Long, categoryName: String) =
+        CategoryMonthSpend(categoryId = categoryId, categoryName = categoryName, year = 2026, month = 1, total = 100.0)
+
+    @Test
+    fun overviewViewModel_categorySpend_mapsToVisibleSortedSeries() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setCategoryMonthlyTotals(
+            listOf(spend(2, "Rent"), spend(1, "Gas")),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val state = awaitItem() as OverviewUiState.Success
+            assertEquals(listOf("Gas", "Rent"), state.categorySpendChart.series.map { it.categoryName })
+            assertTrue(state.categorySpendChart.series.all { it.isVisible })
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_onCategoryToggled_hidesThenShowsThatCategory() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setCategoryMonthlyTotals(
+            listOf(spend(1, "Gas"), spend(2, "Rent")),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem() // all visible
+
+            viewModel.onCategoryToggled(1)
+            val hidden = awaitItem() as OverviewUiState.Success
+            assertFalse(hidden.categorySpendChart.series.first { it.categoryId == 1L }.isVisible)
+            // Toggling one category leaves the others untouched.
+            assertTrue(hidden.categorySpendChart.series.first { it.categoryId == 2L }.isVisible)
+
+            viewModel.onCategoryToggled(1)
+            val shown = awaitItem() as OverviewUiState.Success
+            assertTrue(shown.categorySpendChart.series.first { it.categoryId == 1L }.isVisible)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_selectingPeriod_clearsHiddenCategories() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setCategoryMonthlyTotals(listOf(spend(1, "Gas")))
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+
+            viewModel.onCategoryToggled(1)
+            val hidden = awaitItem() as OverviewUiState.Success
+            assertFalse(hidden.categorySpendChart.series.first { it.categoryId == 1L }.isVisible)
+
+            // Switching period must not carry the hidden filter over to the new period.
+            viewModel.onPeriodSelected(OverviewPeriod.THREE_MONTHS)
+            val afterSwitch = awaitItem() as OverviewUiState.Success
+            assertTrue(afterSwitch.categorySpendChart.series.first { it.categoryId == 1L }.isVisible)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_onSubscribe_queriesCategoryTotalsForCurrentMonthRange() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val expected = OverviewPeriod.THIS_MONTH.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected category totals to be queried for the current-month range",
+            repository.categoryMonthlyTotalsRequestedFor.contains(expected.start to expected.endInclusive),
+        )
     }
 }

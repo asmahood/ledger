@@ -9,6 +9,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import io.github.asmahood.ledger.data.db.entity.TransactionEntity
 import io.github.asmahood.ledger.data.db.relation.TransactionWithCategory
+import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
 import io.github.asmahood.ledger.data.projection.CategoryMonthlyAmountStats
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
@@ -56,4 +57,19 @@ interface TransactionDao {
         WHERE date BETWEEN :start AND :end
     """)
     fun getPeriodTotals(start: LocalDate, end: LocalDate): Flow<PeriodTotals>
+
+    @Query("""
+        SELECT 
+            c.id AS categoryId,
+            c.name AS categoryName,
+            CAST(strftime('%Y', t.date * 86400, 'unixepoch') AS INTEGER) AS year,
+            CAST(strftime('%m', t.date * 86400, 'unixepoch') AS INTEGER) AS month,
+            SUM(t.amount) AS total
+        FROM transactions t
+        INNER JOIN categories c ON c.id = t.category_id
+        WHERE t.type = 'EXPENSE' AND t.date BETWEEN :start AND :end
+        GROUP BY c.id, year, month
+        ORDER BY year, month, c.name
+    """)
+    fun getMonthlyCategoryTotals(start: LocalDate, end: LocalDate): Flow<List<CategoryMonthSpend>>
 }
