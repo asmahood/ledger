@@ -6,9 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The overview income/expense bars aren't assertable through Compose semantics (they paint onto a
- * canvas), so their meaning is locked in here: income reads green, expense reads red, and the two
- * are always distinguishable — in both the light and dark scheme.
+ * The overview income/expense/savings bars aren't assertable through Compose semantics (they paint
+ * onto a canvas), so their meaning is locked in here: income reads green, expense reads red, savings
+ * reads blue, and the three are always distinguishable — in both the light and dark scheme.
  */
 class ChartColorsTest {
 
@@ -20,6 +20,11 @@ class ChartColorsTest {
     private fun assertRedDominant(color: Color, name: String) {
         assertTrue("$name should be redder than it is green", color.red > color.green)
         assertTrue("$name should be redder than it is blue", color.red > color.blue)
+    }
+
+    private fun assertBlueDominant(color: Color, name: String) {
+        assertTrue("$name should be bluer than it is red", color.blue > color.red)
+        assertTrue("$name should be bluer than it is green", color.blue > color.green)
     }
 
     @Test
@@ -35,8 +40,18 @@ class ChartColorsTest {
     }
 
     @Test
-    fun incomeAndExpense_areDistinctInBothSchemes() {
+    fun savingsColors_areBlueDominant() {
+        assertBlueDominant(savingsLight, "savingsLight")
+        assertBlueDominant(savingsDark, "savingsDark")
+    }
+
+    @Test
+    fun incomeExpenseAndSavings_areDistinctInBothSchemes() {
         assertNotEquals(incomeLight, expenseLight)
         assertNotEquals(incomeDark, expenseDark)
+        assertNotEquals(incomeLight, savingsLight)
+        assertNotEquals(incomeDark, savingsDark)
+        assertNotEquals(expenseLight, savingsLight)
+        assertNotEquals(expenseDark, savingsDark)
     }
 }
