@@ -43,11 +43,14 @@ class OverviewViewModel @Inject constructor(
                 range.endInclusive
             )
         ) { totals, categorySpend, totalIncome, totalExpense ->
+            val incomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive)
+            val expenseChart = totalExpense.toTotalExpenseChart(range.start, range.endInclusive)
             PeriodData(
                 summary = totals.toSummary(),
                 categorySpendChart = categorySpend.toCategorySpendChart(range.start, range.endInclusive),
-                totalIncomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive),
-                totalExpenseChart = totalExpense.toTotalExpenseChart(range.start, range.endInclusive)
+                totalIncomeChart = incomeChart,
+                totalExpenseChart = expenseChart,
+                totalSavingsChart = incomeChart.toTotalSavingsChart(expenseChart)
             )
         }
     }
@@ -60,6 +63,7 @@ class OverviewViewModel @Inject constructor(
             ),
             totalIncomeChart = data.totalIncomeChart,
             totalExpenseChart = data.totalExpenseChart,
+            totalSavingsChart = data.totalSavingsChart
         ) as OverviewUiState
     }.catch {
         emit(OverviewUiState.Error(it.message ?: "Unknown error occurred"))
@@ -74,7 +78,8 @@ class OverviewViewModel @Inject constructor(
         val summary: OverviewSummary,
         val categorySpendChart: CategorySpendChart,
         val totalIncomeChart: TotalIncomeChart,
-        val totalExpenseChart: TotalExpenseChart
+        val totalExpenseChart: TotalExpenseChart,
+        val totalSavingsChart: TotalSavingsChart
     )
 
     fun onPeriodSelected(period: OverviewPeriod) {

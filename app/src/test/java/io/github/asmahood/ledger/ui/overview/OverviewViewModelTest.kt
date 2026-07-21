@@ -351,4 +351,95 @@ class OverviewViewModelTest {
             ),
         )
     }
+
+    // ── Total savings chart ───────────────────────────────────────────────────────
+
+    @Test
+    fun overviewViewModel_totalSavings_mapsToNetOfIncomeAndExpense() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val state = awaitItem() as OverviewUiState.Success
+            // Net savings is income − expense: 4000 − 3000 = 1000 for the current month.
+            assertTrue(state.totalSavingsChart.amounts.contains(1000.0))
+            assertEquals(state.totalSavingsChart.monthLabels.size, state.totalSavingsChart.amounts.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_totalSavings_expenseExceedsIncome_isNegative() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
+        )
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val state = awaitItem() as OverviewUiState.Success
+            // 3000 − 4000 = −1000: overspent months net below zero.
+            assertTrue(state.totalSavingsChart.amounts.contains(-1000.0))
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_selectingPeriod_reDerivesTotalSavingsChart() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val initial = awaitItem() as OverviewUiState.Success
+            assertTrue(initial.totalSavingsChart.amounts.contains(1000.0))
+
+            viewModel.onPeriodSelected(OverviewPeriod.THREE_MONTHS)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Savings is derived from the income and expense streams, so a period switch must re-query
+        // both for the newly selected range.
+        val expected = OverviewPeriod.THREE_MONTHS.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected income totals to be re-queried for the new range",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.INCOME, expected.start, expected.endInclusive),
+            ),
+        )
+        assertTrue(
+            "Expected expense totals to be re-queried for the new range",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.EXPENSE, expected.start, expected.endInclusive),
+            ),
+        )
+    }
 }
