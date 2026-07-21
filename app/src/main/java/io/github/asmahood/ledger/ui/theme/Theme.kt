@@ -7,7 +7,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -251,6 +253,19 @@ val unspecified_scheme = ColorFamily(
     Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified
 )
 
+/** Semantic colors Material's [androidx.compose.material3.ColorScheme] has no slot for. */
+@Immutable
+data class ChartColors(
+    val income: Color,
+    val expense: Color,
+)
+
+// Fall back to the light-scheme tones rather than Color.Unspecified, so a chart still paints
+// visible bars if it is ever composed outside LedgerTheme (e.g. a preview or screenshot test).
+val LocalChartColors = staticCompositionLocalOf {
+    ChartColors(income = incomeLight, expense = expenseLight)
+}
+
 @Composable
 fun LedgerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -268,9 +283,17 @@ fun LedgerTheme(
         else -> lightScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content
-    )
+    val chartColors = if (darkTheme) {
+        ChartColors(income = incomeDark, expense = expenseDark)
+    } else {
+        ChartColors(income = incomeLight, expense = expenseLight)
+    }
+
+    CompositionLocalProvider(LocalChartColors provides chartColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            content = content
+        )
+    }
 }

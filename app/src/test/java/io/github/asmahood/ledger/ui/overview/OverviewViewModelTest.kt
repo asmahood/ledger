@@ -202,8 +202,15 @@ class OverviewViewModelTest {
     fun overviewViewModel_totalIncome_mapsToChartAmounts() = runTest {
         val today = LocalDate.now()
         repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        // Distinct income/expense totals so a stream mix-up (income wired to the expense chart or
+        // vice versa) is detectable rather than masked by identical values.
         repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
             listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
         )
 
         val viewModel = OverviewViewModel(repository)
@@ -211,6 +218,7 @@ class OverviewViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem() as OverviewUiState.Success
             assertTrue(state.totalIncomeChart.amounts.contains(4000.0))
+            assertFalse(state.totalIncomeChart.amounts.contains(3000.0))
             assertEquals(state.totalIncomeChart.monthLabels.size, state.totalIncomeChart.amounts.size)
 
             cancelAndIgnoreRemainingEvents()
@@ -242,6 +250,7 @@ class OverviewViewModelTest {
         val today = LocalDate.now()
         repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
         repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
             listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
         )
 
@@ -261,6 +270,84 @@ class OverviewViewModelTest {
             "Expected the newly selected period's range to be queried for income totals",
             repository.monthlyTotalsByTypeRequestedFor.contains(
                 Triple(TransactionType.INCOME, expected.start, expected.endInclusive),
+            ),
+        )
+    }
+
+    // ── Total expense chart ───────────────────────────────────────────────────────
+
+    @Test
+    fun overviewViewModel_totalExpense_mapsToChartAmounts() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        // Distinct income/expense totals so a stream mix-up is detectable rather than masked by
+        // identical values.
+        repository.setMonthlyTotalsByType(
+            TransactionType.INCOME,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val state = awaitItem() as OverviewUiState.Success
+            assertTrue(state.totalExpenseChart.amounts.contains(3000.0))
+            assertFalse(state.totalExpenseChart.amounts.contains(4000.0))
+            assertEquals(state.totalExpenseChart.monthLabels.size, state.totalExpenseChart.amounts.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_onSubscribe_queriesExpenseTotalsForCurrentMonthRangeAndType() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val expected = OverviewPeriod.THIS_MONTH.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected expense totals to be queried for the current-month range",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.EXPENSE, expected.start, expected.endInclusive),
+            ),
+        )
+    }
+
+    @Test
+    fun overviewViewModel_selectingPeriod_reDerivesTotalExpenseChart() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            TransactionType.EXPENSE,
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 3000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val initial = awaitItem() as OverviewUiState.Success
+            assertTrue(initial.totalExpenseChart.amounts.contains(3000.0))
+
+            viewModel.onPeriodSelected(OverviewPeriod.THREE_MONTHS)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Switching periods must re-query the expense stream for the newly selected range.
+        val expected = OverviewPeriod.THREE_MONTHS.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected the newly selected period's range to be queried for expense totals",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.EXPENSE, expected.start, expected.endInclusive),
             ),
         )
     }

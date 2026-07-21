@@ -5,7 +5,8 @@ sealed interface OverviewUiState {
     data class Success(
         val summary: OverviewSummary,
         val categorySpendChart: CategorySpendChart,
-        val totalIncomeChart: TotalIncomeChart
+        val totalIncomeChart: TotalIncomeChart,
+        val totalExpenseChart: TotalExpenseChart
     ) : OverviewUiState
 
     data class Error(val message: String) : OverviewUiState
@@ -34,6 +35,11 @@ data class CategorySeries(
 )
 
 data class TotalIncomeChart(
+    val monthLabels: List<String>,
+    val amounts: List<Double>
+)
+
+data class TotalExpenseChart(
     val monthLabels: List<String>,
     val amounts: List<Double>
 )

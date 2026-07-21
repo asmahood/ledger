@@ -20,15 +20,15 @@ import java.time.LocalDate
  * - Inspect writes via [inserted] / [updated] / [deleted].
  * - Drive the per-category monthly stats with [setMonthlyStats]; inspect which
  *   categories were queried via [monthlyStatsRequestedFor].
- * - Drive the monthly totals-by-type stream with [setMonthlyTotalsByType]; inspect which
- *   (type, start, end) combinations were queried via [monthlyTotalsByTypeRequestedFor].
+ * - Drive the monthly totals-by-type stream per [TransactionType] with [setMonthlyTotalsByType];
+ *   inspect which (type, start, end) combinations were queried via [monthlyTotalsByTypeRequestedFor].
  */
 class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val monthlyStats = MutableStateFlow<Map<Long, MonthlyAmountStats?>>(emptyMap())
     private val periodTotals = MutableStateFlow(PeriodTotals(income = null, expenses = null))
     private val categoryMonthlyTotals = MutableStateFlow<List<CategoryMonthSpend>>(emptyList())
-    private val monthlyTotalsByType = MutableStateFlow<List<MonthlyTotal>>(emptyList())
+    private val monthlyTotalsByType = MutableStateFlow<Map<TransactionType, List<MonthlyTotal>>>(emptyMap())
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
@@ -59,8 +59,8 @@ class FakeTransactionRepository : TransactionRepository {
         categoryMonthlyTotals.value = totals
     }
 
-    fun setMonthlyTotalsByType(totals: List<MonthlyTotal>) {
-        monthlyTotalsByType.value = totals
+    fun setMonthlyTotalsByType(type: TransactionType, totals: List<MonthlyTotal>) {
+        monthlyTotalsByType.value = monthlyTotalsByType.value + (type to totals)
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -112,6 +112,7 @@ class FakeTransactionRepository : TransactionRepository {
         end: LocalDate
     ): Flow<List<MonthlyTotal>> {
         monthlyTotalsByTypeRequestedFor += Triple(type, start, end)
-        return streamError?.let { error -> flow { throw error } } ?: monthlyTotalsByType
+        return streamError?.let { error -> flow { throw error } }
+            ?: monthlyTotalsByType.map { it[type].orEmpty() }
     }
 }
