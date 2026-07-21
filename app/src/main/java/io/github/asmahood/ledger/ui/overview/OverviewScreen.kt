@@ -175,6 +175,19 @@ internal fun OverviewContent(
                 }
 
                 item {
+                    MonthlyTotalChartCard(
+                        title = stringResource(R.string.savings_over_time),
+                        monthLabels = uiState.totalSavingsChart.monthLabels,
+                        amounts = uiState.totalSavingsChart.amounts,
+                        columnColor = LocalChartColors.current.savings,
+                        testTag = TotalSavingsChartTestTag,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+
+                item {
                     CategorySpendChartCard(
                         chart = uiState.categorySpendChart,
                         onCategoryToggled = onCategoryToggled,
@@ -224,7 +237,12 @@ private fun OverviewScreenPreview() {
                 ),
                 totalExpenseChart = TotalExpenseChart(
                     monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
-                    amounts = listOf(4200.0, 3950.0, 4600.0)
+                    amounts = listOf(3100.0, 4200.0, 3600.0)
+                ),
+                // Net of the income/expense above; the Feb dip goes negative to show a below-zero bar.
+                totalSavingsChart = TotalSavingsChart(
+                    monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+                    amounts = listOf(1100.0, -250.0, 1000.0)
                 ),
             ),
             selectedPeriod = OverviewPeriod.THIS_MONTH,
@@ -514,6 +532,9 @@ internal const val TotalIncomeChartTestTag = "total_income_chart_card"
 
 /** Identifies the total-expense chart card in UI tests, independent of any user-visible label. */
 internal const val TotalExpenseChartTestTag = "total_expense_chart_card"
+
+/** Identifies the total-savings chart card in UI tests, independent of any user-visible label. */
+internal const val TotalSavingsChartTestTag = "total_savings_chart_card"
 
 /**
  * A titled card holding a single-series monthly column chart with a tap marker. Shared by the

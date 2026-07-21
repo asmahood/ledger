@@ -217,13 +217,15 @@ val surfaceContainerDarkHighContrast = Color(0xFF2B3230)
 val surfaceContainerHighDarkHighContrast = Color(0xFF363D3B)
 val surfaceContainerHighestDarkHighContrast = Color(0xFF424846)
 
-// Semantic chart colors. Material's scheme has no green slot, so income/expense are defined here
-// with light + dark variants: deeper, higher-saturation tones read well on the light background,
-// lighter/softer tones read on the dark one.
+// Semantic chart colors. Material's scheme has no green slot, so income/expense/savings are defined
+// here with light + dark variants: deeper, higher-saturation tones read well on the light
+// background, lighter/softer tones read on the dark one.
 val incomeLight = Color(0xFF2E7D32)
 val incomeDark = Color(0xFF7CC97F)
 val expenseLight = Color(0xFFBA1A1A)
 val expenseDark = Color(0xFFFFB4AB)
+val savingsLight = Color(0xFF1565C0)
+val savingsDark = Color(0xFF90CAF9)
 
 
 

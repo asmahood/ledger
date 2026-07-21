@@ -27,10 +27,17 @@ private fun percentOfIncome(part: Double, income: Double): Int? =
         .coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
         .toInt()
 
-fun List<CategoryMonthSpend>.toCategorySpendChart(start: LocalDate, end: LocalDate): CategorySpendChart {
-    val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+/** The inclusive list of months spanned by [start]..[end] — every chart's shared x-axis. */
+private fun monthsInRange(start: LocalDate, end: LocalDate): List<YearMonth> =
+    generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
         .takeWhile { it <= YearMonth.from(end) }
         .toList()
+
+fun List<CategoryMonthSpend>.toCategorySpendChart(
+    start: LocalDate,
+    end: LocalDate
+): CategorySpendChart {
+    val months = monthsInRange(start, end)
     val monthLabels = months.map { it.format(chartMonthLabel) }
 
     if (isEmpty()) return CategorySpendChart(monthLabels, emptyList())
@@ -48,19 +55,26 @@ fun List<CategoryMonthSpend>.toCategorySpendChart(start: LocalDate, end: LocalDa
 }
 
 fun List<MonthlyTotal>.toTotalIncomeChart(start: LocalDate, end: LocalDate): TotalIncomeChart {
-    val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-        .takeWhile { it <= YearMonth.from(end) }
-        .toList()
+    val months = monthsInRange(start, end)
     val monthLabels = months.map { it.format(chartMonthLabel) }
     val incomeByMonth = associate { YearMonth.of(it.year, it.month) to it.total }
     return TotalIncomeChart(monthLabels, months.map { incomeByMonth[it] ?: 0.0 })
 }
 
 fun List<MonthlyTotal>.toTotalExpenseChart(start: LocalDate, end: LocalDate): TotalExpenseChart {
-    val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
-        .takeWhile { it <= YearMonth.from(end) }
-        .toList()
+    val months = monthsInRange(start, end)
     val monthLabels = months.map { it.format(chartMonthLabel) }
     val expenseByMonth = associate { YearMonth.of(it.year, it.month) to it.total }
     return TotalExpenseChart(monthLabels, months.map { expenseByMonth[it] ?: 0.0 })
 }
+
+/**
+ * Net savings per month = income − expense. Both charts are built over the same range and already
+ * share an identical month axis, so this subtracts their aligned amounts rather than re-deriving
+ * the month scaffold.
+ */
+fun TotalIncomeChart.toTotalSavingsChart(expense: TotalExpenseChart): TotalSavingsChart =
+    TotalSavingsChart(
+        monthLabels = monthLabels,
+        amounts = amounts.zip(expense.amounts) { earned, spent -> earned - spent }
+    )
