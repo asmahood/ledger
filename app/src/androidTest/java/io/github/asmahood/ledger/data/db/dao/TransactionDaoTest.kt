@@ -419,4 +419,86 @@ class TransactionDaoTest {
         val rows = dao.getMonthlyCategoryTotals(quarterStart, quarterEnd).first()
         assertTrue(rows.isEmpty())
     }
+
+    // ── Monthly totals by type ─────────────────────────────────────────────────────
+
+    @Test
+    fun getMonthlyTotalsByType_sumsIncomePerMonth() = runBlocking {
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 5), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 200.0, date = LocalDate.of(2026, 1, 20), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        val january = rows.single()
+        assertEquals(2026, january.year)
+        assertEquals(1, january.month)
+        assertEquals(4200.0, january.total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_separatesMonths() = runBlocking {
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 31), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 500.0, date = LocalDate.of(2026, 2, 1), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        // Adjacent days across the month boundary must land in separate buckets.
+        assertEquals(2, rows.size)
+        assertEquals(1 to 4000.0, rows[0].month to rows[0].total)
+        assertEquals(2 to 500.0, rows[1].month to rows[1].total)
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_excludesOtherType() = runBlocking {
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.EXPENSE))
+
+        // Only the income row is aggregated; the expense is filtered out entirely.
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        assertEquals(4000.0, rows.single().total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_excludesTransactionsOutsideRange() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2025, 12, 31), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 200.0, date = LocalDate.of(2026, 2, 15), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 300.0, date = LocalDate.of(2026, 4, 1), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        assertEquals(200.0, rows.single().total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_boundsAreInclusive() = runBlocking {
+        dao.insert(transaction(amount = 10.0, date = quarterStart, type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 20.0, date = quarterEnd, type = TransactionType.INCOME))
+
+        val total = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd)
+            .first().sumOf { it.total }
+        assertEquals(30.0, total, 0.001)
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_orderedByYearThenMonth() = runBlocking {
+        // Insert out of order; the query must sort by (year, month).
+        dao.insert(transaction(amount = 500.0, date = LocalDate.of(2026, 3, 1), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.INCOME))
+        dao.insert(transaction(amount = 3950.0, date = LocalDate.of(2026, 2, 10), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        assertEquals(
+            listOf(
+                Triple(2026, 1, 4000.0),
+                Triple(2026, 2, 3950.0),
+                Triple(2026, 3, 500.0),
+            ),
+            rows.map { Triple(it.year, it.month, it.total) },
+        )
+    }
+
+    @Test
+    fun getMonthlyTotalsByType_noRowsInRange_returnsEmpty() = runBlocking {
+        dao.insert(transaction(amount = 100.0, date = LocalDate.of(2025, 1, 1), type = TransactionType.INCOME))
+
+        val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
+        assertTrue(rows.isEmpty())
+    }
 }

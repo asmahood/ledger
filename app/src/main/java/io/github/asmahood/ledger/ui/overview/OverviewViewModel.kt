@@ -3,6 +3,7 @@ package io.github.asmahood.ledger.ui.overview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,11 +31,17 @@ class OverviewViewModel @Inject constructor(
         val range = period.toDateRange(LocalDate.now())
         combine(
             transactionRepository.getPeriodTotalsStream(range.start, range.endInclusive),
-            transactionRepository.getMonthlyCategoryTotalsStream(range.start, range.endInclusive)
-        ) { totals, categorySpend ->
+            transactionRepository.getMonthlyCategoryTotalsStream(range.start, range.endInclusive),
+            transactionRepository.getMonthlyTotalsByTypeStream(
+                TransactionType.INCOME,
+                range.start,
+                range.endInclusive
+            )
+        ) { totals, categorySpend, totalIncome ->
             PeriodData(
                 summary = totals.toSummary(),
-                chart = categorySpend.toCategorySpendChart(range.start, range.endInclusive)
+                categorySpendChart = categorySpend.toCategorySpendChart(range.start, range.endInclusive),
+                totalIncomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive)
             )
         }
     }
@@ -42,9 +49,10 @@ class OverviewViewModel @Inject constructor(
     val uiState = combine(_periodData, _hiddenCategoryIds) { data, hiddenIds ->
         OverviewUiState.Success(
             summary = data.summary,
-            categorySpendChart = data.chart.copy(
-                series = data.chart.series.map { it.copy(isVisible = it.categoryId !in hiddenIds) }
-            )
+            categorySpendChart = data.categorySpendChart.copy(
+                series = data.categorySpendChart.series.map { it.copy(isVisible = it.categoryId !in hiddenIds) }
+            ),
+            totalIncomeChart = data.totalIncomeChart
         ) as OverviewUiState
     }.catch {
         emit(OverviewUiState.Error(it.message ?: "Unknown error occurred"))
@@ -57,7 +65,8 @@ class OverviewViewModel @Inject constructor(
     /** Building the summary and chart is done once per period; toggling visibility only re-copies. */
     private data class PeriodData(
         val summary: OverviewSummary,
-        val chart: CategorySpendChart
+        val categorySpendChart: CategorySpendChart,
+        val totalIncomeChart: TotalIncomeChart
     )
 
     fun onPeriodSelected(period: OverviewPeriod) {

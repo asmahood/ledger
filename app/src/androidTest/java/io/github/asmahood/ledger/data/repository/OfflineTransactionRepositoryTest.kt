@@ -167,4 +167,46 @@ class OfflineTransactionRepositoryTest {
         assertNull(totals.income)
         assertNull(totals.expenses)
     }
+
+    @Test
+    fun getMonthlyTotalsByTypeStream_sumsIncomePerMonthWithinRange() = runBlocking {
+        repository.insertTransaction(
+            transaction(amount = 4000.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.INCOME),
+        )
+        repository.insertTransaction(
+            transaction(amount = 200.0, date = LocalDate.of(2026, 1, 20), type = TransactionType.INCOME),
+        )
+        repository.insertTransaction(
+            transaction(amount = 3950.0, date = LocalDate.of(2026, 2, 10), type = TransactionType.INCOME),
+        )
+        // Not income, and outside the range respectively; neither should be counted.
+        repository.insertTransaction(
+            transaction(amount = 100.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.EXPENSE),
+        )
+        repository.insertTransaction(
+            transaction(amount = 999.0, date = LocalDate.of(2026, 4, 1), type = TransactionType.INCOME),
+        )
+
+        val rows = repository.getMonthlyTotalsByTypeStream(
+            TransactionType.INCOME, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+        ).first()
+
+        assertEquals(
+            listOf(1 to 4200.0, 2 to 3950.0),
+            rows.map { it.month to it.total },
+        )
+    }
+
+    @Test
+    fun getMonthlyTotalsByTypeStream_noMatchingTransactions_returnsEmpty() = runBlocking {
+        repository.insertTransaction(
+            transaction(amount = 100.0, date = LocalDate.of(2026, 1, 10), type = TransactionType.EXPENSE),
+        )
+
+        val rows = repository.getMonthlyTotalsByTypeStream(
+            TransactionType.INCOME, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+        ).first()
+
+        assertEquals(0, rows.size)
+    }
 }

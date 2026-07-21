@@ -1,7 +1,9 @@
 package io.github.asmahood.ledger.ui.overview
 
 import app.cash.turbine.test
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
+import io.github.asmahood.ledger.data.projection.MonthlyTotal
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import io.github.asmahood.ledger.data.repository.FakeTransactionRepository
 import io.github.asmahood.ledger.rule.TestDispatcherRule
@@ -191,6 +193,75 @@ class OverviewViewModelTest {
         assertTrue(
             "Expected category totals to be queried for the current-month range",
             repository.categoryMonthlyTotalsRequestedFor.contains(expected.start to expected.endInclusive),
+        )
+    }
+
+    // ── Total income chart ────────────────────────────────────────────────────────
+
+    @Test
+    fun overviewViewModel_totalIncome_mapsToChartAmounts() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val state = awaitItem() as OverviewUiState.Success
+            assertTrue(state.totalIncomeChart.amounts.contains(4000.0))
+            assertEquals(state.totalIncomeChart.monthLabels.size, state.totalIncomeChart.amounts.size)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun overviewViewModel_onSubscribe_queriesIncomeTotalsForCurrentMonthRangeAndType() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val expected = OverviewPeriod.THIS_MONTH.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected income totals to be queried for the current-month range",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.INCOME, expected.start, expected.endInclusive),
+            ),
+        )
+    }
+
+    @Test
+    fun overviewViewModel_selectingPeriod_reDerivesTotalIncomeChart() = runTest {
+        val today = LocalDate.now()
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        repository.setMonthlyTotalsByType(
+            listOf(MonthlyTotal(year = today.year, month = today.monthValue, total = 4000.0)),
+        )
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            val initial = awaitItem() as OverviewUiState.Success
+            assertTrue(initial.totalIncomeChart.amounts.contains(4000.0))
+
+            viewModel.onPeriodSelected(OverviewPeriod.THREE_MONTHS)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // AC3: switching periods must re-query the income stream for the newly selected range.
+        val expected = OverviewPeriod.THREE_MONTHS.toDateRange(LocalDate.now())
+        assertTrue(
+            "Expected the newly selected period's range to be queried for income totals",
+            repository.monthlyTotalsByTypeRequestedFor.contains(
+                Triple(TransactionType.INCOME, expected.start, expected.endInclusive),
+            ),
         )
     }
 }
