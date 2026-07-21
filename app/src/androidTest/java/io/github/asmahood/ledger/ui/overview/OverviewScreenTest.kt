@@ -3,6 +3,7 @@ package io.github.asmahood.ledger.ui.overview
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -61,16 +62,23 @@ class OverviewScreenTest {
         amounts = listOf(3000.0, 2950.0, 3600.0),
     )
 
+    private val sampleSavingsChart = TotalSavingsChart(
+        monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+        amounts = listOf(1000.0, 1000.0, 1000.0),
+    )
+
     private fun success(
         summary: OverviewSummary = sampleSummary,
         chart: CategorySpendChart = sampleChart,
         incomeChart: TotalIncomeChart = sampleIncomeChart,
         expenseChart: TotalExpenseChart = sampleExpenseChart,
+        savingsChart: TotalSavingsChart = sampleSavingsChart,
     ) = OverviewUiState.Success(
         summary = summary,
         categorySpendChart = chart,
         totalIncomeChart = incomeChart,
         totalExpenseChart = expenseChart,
+        totalSavingsChart = savingsChart,
     )
 
     private fun setContent(
@@ -239,6 +247,55 @@ class OverviewScreenTest {
         )
 
         composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).performScrollTo().assertIsDisplayed()
+    }
+
+    // ── Total savings chart (AC1, AC2, AC4) ───────────────────────────────────────
+
+    @Test
+    fun totalSavingsChart_cardRenders() {
+        setContent()
+
+        // The savings card is the third chart in the LazyColumn, below the fold, so it isn't
+        // composed until scrolled to — performScrollTo can't reveal a node that doesn't yet exist.
+        composeTestRule.onNodeWithTag(OverviewListTestTag)
+            .performScrollToNode(hasTestTag(TotalSavingsChartTestTag))
+        composeTestRule.onNodeWithTag(TotalSavingsChartTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun totalSavingsChart_zeroFilledMonths_stillRendersCard() {
+        // Months with no transactions net to zero rather than being omitted, so the card must still
+        // render without crashing when every amount is zero.
+        setContent(
+            uiState = success(
+                savingsChart = TotalSavingsChart(
+                    monthLabels = listOf("Jan '26"),
+                    amounts = listOf(0.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(OverviewListTestTag)
+            .performScrollToNode(hasTestTag(TotalSavingsChartTestTag))
+        composeTestRule.onNodeWithTag(TotalSavingsChartTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun totalSavingsChart_negativeMonths_stillRendersCard() {
+        // Net savings can be negative when a month overspends; the column layer renders bars below
+        // the zero baseline, so the card must render without crashing on negative amounts.
+        setContent(
+            uiState = success(
+                savingsChart = TotalSavingsChart(
+                    monthLabels = listOf("Jan '26", "Feb '26"),
+                    amounts = listOf(1000.0, -1100.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(OverviewListTestTag)
+            .performScrollToNode(hasTestTag(TotalSavingsChartTestTag))
+        composeTestRule.onNodeWithTag(TotalSavingsChartTestTag).assertIsDisplayed()
     }
 
     // ── Category spend chart ──────────────────────────────────────────────────────
