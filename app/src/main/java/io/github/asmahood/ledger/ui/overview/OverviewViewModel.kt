@@ -36,12 +36,18 @@ class OverviewViewModel @Inject constructor(
                 TransactionType.INCOME,
                 range.start,
                 range.endInclusive
+            ),
+            transactionRepository.getMonthlyTotalsByTypeStream(
+                TransactionType.EXPENSE,
+                range.start,
+                range.endInclusive
             )
-        ) { totals, categorySpend, totalIncome ->
+        ) { totals, categorySpend, totalIncome, totalExpense ->
             PeriodData(
                 summary = totals.toSummary(),
                 categorySpendChart = categorySpend.toCategorySpendChart(range.start, range.endInclusive),
-                totalIncomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive)
+                totalIncomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive),
+                totalExpenseChart = totalExpense.toTotalExpenseChart(range.start, range.endInclusive)
             )
         }
     }
@@ -52,7 +58,8 @@ class OverviewViewModel @Inject constructor(
             categorySpendChart = data.categorySpendChart.copy(
                 series = data.categorySpendChart.series.map { it.copy(isVisible = it.categoryId !in hiddenIds) }
             ),
-            totalIncomeChart = data.totalIncomeChart
+            totalIncomeChart = data.totalIncomeChart,
+            totalExpenseChart = data.totalExpenseChart,
         ) as OverviewUiState
     }.catch {
         emit(OverviewUiState.Error(it.message ?: "Unknown error occurred"))
@@ -66,7 +73,8 @@ class OverviewViewModel @Inject constructor(
     private data class PeriodData(
         val summary: OverviewSummary,
         val categorySpendChart: CategorySpendChart,
-        val totalIncomeChart: TotalIncomeChart
+        val totalIncomeChart: TotalIncomeChart,
+        val totalExpenseChart: TotalExpenseChart
     )
 
     fun onPeriodSelected(period: OverviewPeriod) {

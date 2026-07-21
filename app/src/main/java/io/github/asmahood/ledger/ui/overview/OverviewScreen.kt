@@ -70,6 +70,7 @@ import io.github.asmahood.ledger.ui.components.ErrorState
 import io.github.asmahood.ledger.ui.components.LoadingState
 import io.github.asmahood.ledger.ui.navigation.LedgerTopBar
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.ui.theme.LocalChartColors
 import io.github.asmahood.ledger.ui.theme.figureStyle
 import io.github.asmahood.ledger.util.formatCurrency
 
@@ -89,6 +90,9 @@ fun OverviewScreen(
         modifier = modifier
     )
 }
+
+/** Identifies the scrolling overview list, so UI tests can scroll charts below the fold into view. */
+internal const val OverviewListTestTag = "overview_list"
 
 @Composable
 internal fun OverviewContent(
@@ -116,7 +120,7 @@ internal fun OverviewContent(
             )
 
             is OverviewUiState.Success -> LazyColumn(
-                modifier = contentModifier,
+                modifier = contentModifier.testTag(OverviewListTestTag),
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -145,8 +149,25 @@ internal fun OverviewContent(
                 }
 
                 item {
-                    TotalIncomeChartCard(
-                        chart = uiState.totalIncomeChart,
+                    MonthlyTotalChartCard(
+                        title = stringResource(R.string.income_over_time),
+                        monthLabels = uiState.totalIncomeChart.monthLabels,
+                        amounts = uiState.totalIncomeChart.amounts,
+                        columnColor = LocalChartColors.current.income,
+                        testTag = TotalIncomeChartTestTag,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+
+                item {
+                    MonthlyTotalChartCard(
+                        title = stringResource(R.string.expense_over_time),
+                        monthLabels = uiState.totalExpenseChart.monthLabels,
+                        amounts = uiState.totalExpenseChart.amounts,
+                        columnColor = LocalChartColors.current.expense,
+                        testTag = TotalExpenseChartTestTag,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
@@ -200,7 +221,11 @@ private fun OverviewScreenPreview() {
                 totalIncomeChart = TotalIncomeChart(
                     monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
                     amounts = listOf(4200.0, 3950.0, 4600.0)
-                )
+                ),
+                totalExpenseChart = TotalExpenseChart(
+                    monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+                    amounts = listOf(4200.0, 3950.0, 4600.0)
+                ),
             ),
             selectedPeriod = OverviewPeriod.THIS_MONTH,
             onPeriodSelected = {},
@@ -487,23 +512,33 @@ private fun CategorySpendChartCard(
 /** Identifies the total-income chart card in UI tests, independent of any user-visible label. */
 internal const val TotalIncomeChartTestTag = "total_income_chart_card"
 
+/** Identifies the total-expense chart card in UI tests, independent of any user-visible label. */
+internal const val TotalExpenseChartTestTag = "total_expense_chart_card"
+
+/**
+ * A titled card holding a single-series monthly column chart with a tap marker. Shared by the
+ * income and expense overview charts, which differ only in title, bar color, and test tag.
+ */
 @Composable
-private fun TotalIncomeChartCard(
-    chart: TotalIncomeChart,
+private fun MonthlyTotalChartCard(
+    title: String,
+    monthLabels: List<String>,
+    amounts: List<Double>,
+    columnColor: Color,
+    testTag: String,
     modifier: Modifier = Modifier
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
-    val columnColor = MaterialTheme.colorScheme.primary
     val columnProvider = remember(columnColor) {
         ColumnCartesianLayer.ColumnProvider.series(
             listOf(LineComponent(Fill(columnColor), 16.dp))
         )
     }
 
-    // AC2: tapping a bar reveals that month's exact income. The marker shows on press by default.
+    // AC2: tapping a bar reveals that month's exact amount. The marker shows on press by default.
     // Format from the source amounts (Double) keyed by the tapped x rather than the model's
     // Float-widened y, so the label is exact even for amounts beyond Float's precision.
-    val incomeMarker = rememberDefaultCartesianMarker(
+    val marker = rememberDefaultCartesianMarker(
         label = rememberTextComponent(
             style = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp),
             padding = Insets(horizontal = 8.dp, vertical = 4.dp),
@@ -512,19 +547,19 @@ private fun TotalIncomeChartCard(
                 shape = RoundedCornerShape(8.dp)
             )
         ),
-        valueFormatter = remember(chart.amounts) {
+        valueFormatter = remember(amounts) {
             DefaultCartesianMarker.ValueFormatter { _, targets ->
                 val index = (targets.firstOrNull() as? ColumnCartesianLayerMarkerTarget)?.x?.toInt()
-                index?.let { chart.amounts.getOrNull(it) }?.let(::formatCurrency) ?: ""
+                index?.let { amounts.getOrNull(it) }?.let(::formatCurrency) ?: ""
             }
         }
     )
 
-    LaunchedEffect(chart) {
-        if (chart.monthLabels.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(monthLabels, amounts) {
+        if (monthLabels.isEmpty()) return@LaunchedEffect
         modelProducer.runTransaction {
             columnModel {
-                series(y = chart.amounts.map { it.toFloat() })
+                series(y = amounts.map { it.toFloat() })
             }
         }
     }
@@ -533,16 +568,16 @@ private fun TotalIncomeChartCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.testTag(TotalIncomeChartTestTag)
+        modifier = modifier.testTag(testTag)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            SummaryEyebrow("Income over time")
+            SummaryEyebrow(title)
 
             MonthlyColumnChartHost(
                 modelProducer = modelProducer,
                 columnProvider = columnProvider,
-                monthLabels = chart.monthLabels,
-                marker = incomeMarker,
+                monthLabels = monthLabels,
+                marker = marker,
                 modifier = Modifier.padding(top = 12.dp)
             )
         }
