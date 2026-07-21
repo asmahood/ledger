@@ -59,4 +59,6 @@
     <string name="loading_summary">Loading summary...</string>
     <string name="couldnt_load_summary">Couldn\'t load summary</string>
     <string name="percent_of_income">%1$d%% of income</string>
+    <string name="income_over_time">Income over time</string>
+    <string name="expense_over_time">Expenses over time</string>
 </resources>

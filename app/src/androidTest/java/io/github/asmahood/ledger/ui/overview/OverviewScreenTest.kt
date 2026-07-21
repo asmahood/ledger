@@ -3,6 +3,7 @@ package io.github.asmahood.ledger.ui.overview
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 import org.junit.Assert.assertEquals
@@ -54,11 +56,22 @@ class OverviewScreenTest {
         amounts = listOf(4000.0, 3950.0, 4600.0),
     )
 
+    private val sampleExpenseChart = TotalExpenseChart(
+        monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+        amounts = listOf(3000.0, 2950.0, 3600.0),
+    )
+
     private fun success(
         summary: OverviewSummary = sampleSummary,
         chart: CategorySpendChart = sampleChart,
         incomeChart: TotalIncomeChart = sampleIncomeChart,
-    ) = OverviewUiState.Success(summary = summary, categorySpendChart = chart, totalIncomeChart = incomeChart)
+        expenseChart: TotalExpenseChart = sampleExpenseChart,
+    ) = OverviewUiState.Success(
+        summary = summary,
+        categorySpendChart = chart,
+        totalIncomeChart = incomeChart,
+        totalExpenseChart = expenseChart,
+    )
 
     private fun setContent(
         uiState: OverviewUiState = success(),
@@ -77,6 +90,15 @@ class OverviewScreenTest {
             }
         }
         composeTestRule.waitForIdle()
+    }
+
+    /**
+     * Scrolls the overview list until the node holding [text] is composed and on-screen. The
+     * category card sits below the summary and both charts, so in a LazyColumn it isn't composed
+     * until scrolled to — [performScrollTo] can't reveal a node that doesn't yet exist.
+     */
+    private fun scrollListTo(text: String) {
+        composeTestRule.onNodeWithTag(OverviewListTestTag).performScrollToNode(hasText(text))
     }
 
     // ── Period selector (AC3) ─────────────────────────────────────────────────────
@@ -194,13 +216,40 @@ class OverviewScreenTest {
         composeTestRule.onNodeWithTag(TotalIncomeChartTestTag).assertIsDisplayed()
     }
 
+    // ── Total expense chart ───────────────────────────────────────────────────────
+
+    @Test
+    fun totalExpenseChart_cardRenders() {
+        setContent()
+
+        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun totalExpenseChart_zeroFilledMonths_stillRendersCard() {
+        // Months with no expense data map to zero-filled amounts rather than being omitted, so the
+        // card must still render without crashing when every amount is zero.
+        setContent(
+            uiState = success(
+                expenseChart = TotalExpenseChart(
+                    monthLabels = listOf("Jan '26"),
+                    amounts = listOf(0.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).performScrollTo().assertIsDisplayed()
+    }
+
     // ── Category spend chart ──────────────────────────────────────────────────────
 
     @Test
     fun categoryChart_displaysTitle() {
         setContent()
 
-        // SummaryEyebrow renders its label uppercase, matching the summary-card eyebrows.
+        // SummaryEyebrow renders its label uppercase, matching the summary-card eyebrows. The card
+        // sits below the income and expense charts, so scroll it into view before asserting.
+        scrollListTo("EXPENSES BY CATEGORY")
         composeTestRule.onNodeWithText("EXPENSES BY CATEGORY").assertIsDisplayed()
     }
 
@@ -208,10 +257,12 @@ class OverviewScreenTest {
     fun categoryChart_legend_showsVisibleCategoryNames() {
         setContent()
 
-        // Legend labels come from the visible series. The legend sits below the income chart, so
-        // scroll it into view before asserting.
-        composeTestRule.onNodeWithText("Gas").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("Rent").performScrollTo().assertIsDisplayed()
+        // Legend labels come from the visible series. The legend sits below both charts, so scroll
+        // it into view before asserting.
+        scrollListTo("Gas")
+        composeTestRule.onNodeWithText("Gas").assertIsDisplayed()
+        scrollListTo("Rent")
+        composeTestRule.onNodeWithText("Rent").assertIsDisplayed()
     }
 
     @Test
@@ -219,6 +270,7 @@ class OverviewScreenTest {
         var toggled: Long? = null
         setContent(onCategoryToggled = { toggled = it })
 
+        scrollListTo("Categories")
         composeTestRule.onNodeWithText("Categories").performClick()
         // "Rent" now appears both in the legend and the open menu; tapping the menu row toggles it.
         composeTestRule.onAllNodesWithText("Rent").onLast().performClick()
@@ -239,7 +291,8 @@ class OverviewScreenTest {
         )
 
         // Gas is hidden, so it should not appear as a legend entry. Rent stays visible.
-        composeTestRule.onNodeWithText("Rent").performScrollTo().assertIsDisplayed()
+        scrollListTo("Rent")
+        composeTestRule.onNodeWithText("Rent").assertIsDisplayed()
         composeTestRule.onAllNodesWithText("Gas").fetchSemanticsNodes().let { nodes ->
             assertTrue("Hidden category should not render a legend label", nodes.isEmpty())
         }

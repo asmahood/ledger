@@ -55,3 +55,12 @@ fun List<MonthlyTotal>.toTotalIncomeChart(start: LocalDate, end: LocalDate): Tot
     val incomeByMonth = associate { YearMonth.of(it.year, it.month) to it.total }
     return TotalIncomeChart(monthLabels, months.map { incomeByMonth[it] ?: 0.0 })
 }
+
+fun List<MonthlyTotal>.toTotalExpenseChart(start: LocalDate, end: LocalDate): TotalExpenseChart {
+    val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+        .takeWhile { it <= YearMonth.from(end) }
+        .toList()
+    val monthLabels = months.map { it.format(chartMonthLabel) }
+    val expenseByMonth = associate { YearMonth.of(it.year, it.month) to it.total }
+    return TotalExpenseChart(monthLabels, months.map { expenseByMonth[it] ?: 0.0 })
+}
