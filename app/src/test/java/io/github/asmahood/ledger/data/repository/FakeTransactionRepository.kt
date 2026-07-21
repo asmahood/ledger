@@ -2,7 +2,9 @@ package io.github.asmahood.ledger.data.repository
 
 import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
+import io.github.asmahood.ledger.data.projection.MonthlyTotal
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,12 +20,15 @@ import java.time.LocalDate
  * - Inspect writes via [inserted] / [updated] / [deleted].
  * - Drive the per-category monthly stats with [setMonthlyStats]; inspect which
  *   categories were queried via [monthlyStatsRequestedFor].
+ * - Drive the monthly totals-by-type stream with [setMonthlyTotalsByType]; inspect which
+ *   (type, start, end) combinations were queried via [monthlyTotalsByTypeRequestedFor].
  */
 class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val monthlyStats = MutableStateFlow<Map<Long, MonthlyAmountStats?>>(emptyMap())
     private val periodTotals = MutableStateFlow(PeriodTotals(income = null, expenses = null))
     private val categoryMonthlyTotals = MutableStateFlow<List<CategoryMonthSpend>>(emptyList())
+    private val monthlyTotalsByType = MutableStateFlow<List<MonthlyTotal>>(emptyList())
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
@@ -31,6 +36,7 @@ class FakeTransactionRepository : TransactionRepository {
     val monthlyStatsRequestedFor = mutableListOf<Long>()
     val periodTotalsRequestedFor = mutableListOf<Pair<LocalDate, LocalDate>>()
     val categoryMonthlyTotalsRequestedFor = mutableListOf<Pair<LocalDate, LocalDate>>()
+    val monthlyTotalsByTypeRequestedFor = mutableListOf<Triple<TransactionType, LocalDate, LocalDate>>()
 
     var streamError: Throwable? = null
     var insertError: Throwable? = null
@@ -51,6 +57,10 @@ class FakeTransactionRepository : TransactionRepository {
 
     fun setCategoryMonthlyTotals(totals: List<CategoryMonthSpend>) {
         categoryMonthlyTotals.value = totals
+    }
+
+    fun setMonthlyTotalsByType(totals: List<MonthlyTotal>) {
+        monthlyTotalsByType.value = totals
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -94,5 +104,14 @@ class FakeTransactionRepository : TransactionRepository {
     ): Flow<List<CategoryMonthSpend>> {
         categoryMonthlyTotalsRequestedFor += start to end
         return streamError?.let { error -> flow { throw error } } ?: categoryMonthlyTotals
+    }
+
+    override fun getMonthlyTotalsByTypeStream(
+        type: TransactionType,
+        start: LocalDate,
+        end: LocalDate
+    ): Flow<List<MonthlyTotal>> {
+        monthlyTotalsByTypeRequestedFor += Triple(type, start, end)
+        return streamError?.let { error -> flow { throw error } } ?: monthlyTotalsByType
     }
 }

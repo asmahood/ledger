@@ -7,8 +7,10 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
 import org.junit.Assert.assertEquals
@@ -47,10 +49,16 @@ class OverviewScreenTest {
         ),
     )
 
+    private val sampleIncomeChart = TotalIncomeChart(
+        monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+        amounts = listOf(4000.0, 3950.0, 4600.0),
+    )
+
     private fun success(
         summary: OverviewSummary = sampleSummary,
         chart: CategorySpendChart = sampleChart,
-    ) = OverviewUiState.Success(summary = summary, categorySpendChart = chart)
+        incomeChart: TotalIncomeChart = sampleIncomeChart,
+    ) = OverviewUiState.Success(summary = summary, categorySpendChart = chart, totalIncomeChart = incomeChart)
 
     private fun setContent(
         uiState: OverviewUiState = success(),
@@ -161,6 +169,31 @@ class OverviewScreenTest {
         composeTestRule.onNodeWithText("-35% of income").assertIsDisplayed()
     }
 
+    // ── Total income chart (AC1, AC4) ─────────────────────────────────────────────
+
+    @Test
+    fun totalIncomeChart_cardRenders() {
+        setContent()
+
+        composeTestRule.onNodeWithTag(TotalIncomeChartTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun totalIncomeChart_zeroFilledMonths_stillRendersCard() {
+        // AC4: months with no income data map to zero-filled amounts rather than being omitted,
+        // so the card must still render without crashing when every amount is zero.
+        setContent(
+            uiState = success(
+                incomeChart = TotalIncomeChart(
+                    monthLabels = listOf("Jan '26"),
+                    amounts = listOf(0.0),
+                ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag(TotalIncomeChartTestTag).assertIsDisplayed()
+    }
+
     // ── Category spend chart ──────────────────────────────────────────────────────
 
     @Test
@@ -175,9 +208,10 @@ class OverviewScreenTest {
     fun categoryChart_legend_showsVisibleCategoryNames() {
         setContent()
 
-        // Legend labels come from the visible series.
-        composeTestRule.onNodeWithText("Gas").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Rent").assertIsDisplayed()
+        // Legend labels come from the visible series. The legend sits below the income chart, so
+        // scroll it into view before asserting.
+        composeTestRule.onNodeWithText("Gas").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rent").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -205,7 +239,7 @@ class OverviewScreenTest {
         )
 
         // Gas is hidden, so it should not appear as a legend entry. Rent stays visible.
-        composeTestRule.onNodeWithText("Rent").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Rent").performScrollTo().assertIsDisplayed()
         composeTestRule.onAllNodesWithText("Gas").fetchSemanticsNodes().let { nodes ->
             assertTrue("Hidden category should not render a legend label", nodes.isEmpty())
         }

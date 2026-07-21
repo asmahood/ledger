@@ -5,7 +5,9 @@ import io.github.asmahood.ledger.data.mapper.toEntity
 import io.github.asmahood.ledger.data.mapper.toModel
 import io.github.asmahood.ledger.data.model.MonthlyAmountStats
 import io.github.asmahood.ledger.data.model.Transaction
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
+import io.github.asmahood.ledger.data.projection.MonthlyTotal
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -24,6 +26,11 @@ interface TransactionRepository {
         start: LocalDate,
         end: LocalDate
     ): Flow<List<CategoryMonthSpend>>
+    fun getMonthlyTotalsByTypeStream(
+        type: TransactionType,
+        start: LocalDate,
+        end: LocalDate
+    ): Flow<List<MonthlyTotal>>
 }
 
 class OfflineTransactionRepository @Inject constructor(private val dao: TransactionDao) :
@@ -61,5 +68,13 @@ class OfflineTransactionRepository @Inject constructor(private val dao: Transact
         end: LocalDate
     ): Flow<List<CategoryMonthSpend>> {
         return dao.getMonthlyCategoryTotals(start, end)
+    }
+
+    override fun getMonthlyTotalsByTypeStream(
+        type: TransactionType,
+        start: LocalDate,
+        end: LocalDate
+    ): Flow<List<MonthlyTotal>> {
+        return dao.getMonthlyTotalsByType(type.name, start, end)
     }
 }

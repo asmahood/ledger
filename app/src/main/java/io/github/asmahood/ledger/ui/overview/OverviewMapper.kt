@@ -1,6 +1,7 @@
 package io.github.asmahood.ledger.ui.overview
 
 import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
+import io.github.asmahood.ledger.data.projection.MonthlyTotal
 import io.github.asmahood.ledger.data.projection.PeriodTotals
 import io.github.asmahood.ledger.util.chartMonthLabel
 import java.time.LocalDate
@@ -44,4 +45,13 @@ fun List<CategoryMonthSpend>.toCategorySpendChart(start: LocalDate, end: LocalDa
     }.sortedBy { it.categoryName }
 
     return CategorySpendChart(monthLabels, series)
+}
+
+fun List<MonthlyTotal>.toTotalIncomeChart(start: LocalDate, end: LocalDate): TotalIncomeChart {
+    val months = generateSequence(YearMonth.from(start)) { it.plusMonths(1) }
+        .takeWhile { it <= YearMonth.from(end) }
+        .toList()
+    val monthLabels = months.map { it.format(chartMonthLabel) }
+    val incomeByMonth = associate { YearMonth.of(it.year, it.month) to it.total }
+    return TotalIncomeChart(monthLabels, months.map { incomeByMonth[it] ?: 0.0 })
 }
