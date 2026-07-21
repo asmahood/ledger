@@ -36,8 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -52,9 +54,17 @@ import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
 import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.ColumnCartesianLayerMarkerTarget
+import com.patrykandpatrick.vico.compose.cartesian.marker.DefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
 import com.patrykandpatrick.vico.compose.common.component.LineComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import io.github.asmahood.ledger.R
 import io.github.asmahood.ledger.ui.components.ErrorState
 import io.github.asmahood.ledger.ui.components.LoadingState
@@ -135,6 +145,15 @@ internal fun OverviewContent(
                 }
 
                 item {
+                    TotalIncomeChartCard(
+                        chart = uiState.totalIncomeChart,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+
+                item {
                     CategorySpendChartCard(
                         chart = uiState.categorySpendChart,
                         onCategoryToggled = onCategoryToggled,
@@ -177,6 +196,10 @@ private fun OverviewScreenPreview() {
                             amounts = listOf(1500.0, 1500.0, 1500.0)
                         )
                     )
+                ),
+                totalIncomeChart = TotalIncomeChart(
+                    monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
+                    amounts = listOf(4200.0, 3950.0, 4600.0)
                 )
             ),
             selectedPeriod = OverviewPeriod.THIS_MONTH,
@@ -305,6 +328,50 @@ private fun SummaryCardNegativePreview() {
     }
 }
 
+/**
+ * Shared column-chart host for the overview's monthly charts: a currency start axis, a month-label
+ * bottom axis, and an optional tap marker. Callers supply the model producer, columns, and (for
+ * multi-series charts) the merge mode.
+ */
+@Composable
+private fun MonthlyColumnChartHost(
+    modelProducer: CartesianChartModelProducer,
+    columnProvider: ColumnCartesianLayer.ColumnProvider,
+    monthLabels: List<String>,
+    modifier: Modifier = Modifier,
+    mergeMode: (ExtraStore) -> ColumnCartesianLayer.MergeMode = {
+        ColumnCartesianLayer.MergeMode.Grouped()
+    },
+    marker: CartesianMarker? = null
+) {
+    CartesianChartHost(
+        chart = rememberCartesianChart(
+            rememberColumnCartesianLayer(
+                columnProvider = columnProvider,
+                mergeMode = mergeMode
+            ),
+            startAxis = VerticalAxis.rememberStart(
+                itemPlacer = remember { VerticalAxis.ItemPlacer.count(count = { 5 }) },
+                valueFormatter = remember {
+                    CartesianValueFormatter { _, value, _ -> formatCurrency(value) }
+                }
+            ),
+            bottomAxis = HorizontalAxis.rememberBottom(
+                valueFormatter = remember(monthLabels) {
+                    CartesianValueFormatter { _, x, _ ->
+                        monthLabels.getOrNull(x.toInt())
+                            ?: monthLabels.lastOrNull()
+                            ?: x.toInt().toString()
+                    }
+                }
+            ),
+            marker = marker
+        ),
+        modelProducer = modelProducer,
+        modifier = modifier
+    )
+}
+
 @Composable
 private fun CategorySpendChartCard(
     chart: CategorySpendChart,
@@ -392,29 +459,11 @@ private fun CategorySpendChartCard(
                 }
             }
 
-            CartesianChartHost(
-                chart = rememberCartesianChart(
-                    rememberColumnCartesianLayer(
-                        columnProvider = columnProvider,
-                        mergeMode = { ColumnCartesianLayer.MergeMode.Stacked }
-                    ),
-                    startAxis = VerticalAxis.rememberStart(
-                        itemPlacer = remember { VerticalAxis.ItemPlacer.count(count = { 5 }) },
-                        valueFormatter = remember {
-                            CartesianValueFormatter { _, value, _ -> formatCurrency(value) }
-                        }
-                    ),
-                    bottomAxis = HorizontalAxis.rememberBottom(
-                        valueFormatter = remember(chart.monthLabels) {
-                            CartesianValueFormatter { _, x, _ ->
-                                chart.monthLabels.getOrNull(x.toInt())
-                                    ?: chart.monthLabels.lastOrNull()
-                                    ?: x.toInt().toString()
-                            }
-                        }
-                    )
-                ),
+            MonthlyColumnChartHost(
                 modelProducer = modelProducer,
+                columnProvider = columnProvider,
+                monthLabels = chart.monthLabels,
+                mergeMode = { ColumnCartesianLayer.MergeMode.Stacked },
                 modifier = Modifier.padding(top = 12.dp)
             )
 
@@ -431,6 +480,71 @@ private fun CategorySpendChartCard(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Identifies the total-income chart card in UI tests, independent of any user-visible label. */
+internal const val TotalIncomeChartTestTag = "total_income_chart_card"
+
+@Composable
+private fun TotalIncomeChartCard(
+    chart: TotalIncomeChart,
+    modifier: Modifier = Modifier
+) {
+    val modelProducer = remember { CartesianChartModelProducer() }
+    val columnColor = MaterialTheme.colorScheme.primary
+    val columnProvider = remember(columnColor) {
+        ColumnCartesianLayer.ColumnProvider.series(
+            listOf(LineComponent(Fill(columnColor), 16.dp))
+        )
+    }
+
+    // AC2: tapping a bar reveals that month's exact income. The marker shows on press by default.
+    // Format from the source amounts (Double) keyed by the tapped x rather than the model's
+    // Float-widened y, so the label is exact even for amounts beyond Float's precision.
+    val incomeMarker = rememberDefaultCartesianMarker(
+        label = rememberTextComponent(
+            style = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp),
+            padding = Insets(horizontal = 8.dp, vertical = 4.dp),
+            background = rememberShapeComponent(
+                fill = Fill(MaterialTheme.colorScheme.surfaceContainerHigh),
+                shape = RoundedCornerShape(8.dp)
+            )
+        ),
+        valueFormatter = remember(chart.amounts) {
+            DefaultCartesianMarker.ValueFormatter { _, targets ->
+                val index = (targets.firstOrNull() as? ColumnCartesianLayerMarkerTarget)?.x?.toInt()
+                index?.let { chart.amounts.getOrNull(it) }?.let(::formatCurrency) ?: ""
+            }
+        }
+    )
+
+    LaunchedEffect(chart) {
+        if (chart.monthLabels.isEmpty()) return@LaunchedEffect
+        modelProducer.runTransaction {
+            columnModel {
+                series(y = chart.amounts.map { it.toFloat() })
+            }
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier.testTag(TotalIncomeChartTestTag)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            SummaryEyebrow("Income over time")
+
+            MonthlyColumnChartHost(
+                modelProducer = modelProducer,
+                columnProvider = columnProvider,
+                monthLabels = chart.monthLabels,
+                marker = incomeMarker,
+                modifier = Modifier.padding(top = 12.dp)
+            )
         }
     }
 }
