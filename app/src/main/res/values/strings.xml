@@ -62,4 +62,11 @@
     <string name="income_over_time">Income over time</string>
     <string name="expense_over_time">Expenses over time</string>
     <string name="savings_over_time">Savings over time</string>
+    <string name="spending_vs_budget">Spending vs Budget</string>
+    <string name="budgeted">Budgeted</string>
+    <string name="unbudgeted">Unbudgeted</string>
+    <string name="budget_total">Total</string>
+    <string name="budget_amount_of">%1$s/%2$s</string>
+    <string name="budget_percent">(%1$d%%)</string>
+    <string name="budget_percent_unknown">(—)</string>
 </resources>
