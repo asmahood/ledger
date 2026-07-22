@@ -12,6 +12,7 @@ import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.repository.FakeCategoryRepository
 import io.github.asmahood.ledger.data.repository.FakeTransactionRepository
 import io.github.asmahood.ledger.rule.TestDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -355,6 +356,103 @@ class ImportViewModelTest {
         assertEquals(1, result.duplicatesSkipped)
         assertEquals(0, result.categorySkipped)
         assertEquals(1, result.categoriesCreated)
+    }
+
+    // Regression: a name only ever lands in `resolutions` when it matched no existing category,
+    // so choosing "use existing" for it used to guarantee a lookup miss that crashed the whole
+    // import (see finding 1).
+    @Test
+    fun onImport_useExisting_mapsRowsToTheChosenCategory() = runTest {
+        categoryRepository.setCategories(listOf(groceries))
+        val vm = viewModel()
+        vm.onFileLoaded(standardCsv)
+        vm.onNext()
+        vm.onNext()
+        vm.onCategoryResolved("Coffee", CategoryResolution.UseExisting(groceries.id))
+        vm.onNext()
+
+        vm.onImport()
+
+        val batch = transactionRepository.insertedBatches.single()
+        assertEquals(2, batch.size)
+        assertTrue(batch.all { it.category == groceries })
+        assertNull(vm.uiState.value.errorMessage)
+        assertEquals(0, categoryRepository.inserted.size)
+    }
+
+    // Regression: categorySkipped used to require the row to still be selected, so a valid,
+    // non-duplicate row whose category was skipped landed in no bucket at all once deselected
+    // (see finding 2).
+    @Test
+    fun onImport_categorySkipped_countsDeselectedNonDuplicateRowsToo() = runTest {
+        categoryRepository.setCategories(listOf(groceries))
+        val vm = viewModel()
+        vm.onFileLoaded(standardCsv)
+        vm.onNext()
+        vm.onNext()
+        vm.onCategoryResolved("Coffee", CategoryResolution.SkipRows)
+        vm.onNext()
+        vm.onRowToggled(3)
+
+        vm.onImport()
+
+        val result = vm.uiState.value.result
+        assertEquals(1, result?.imported)
+        assertEquals(1, result?.categorySkipped)
+    }
+
+    // Regression: resolutions used to be keyed by the exact first-seen spelling, so a row
+    // spelling an already-resolved name with different case missed the map entirely (see
+    // finding 4). Both spellings should be skipped once "Coffee" is resolved to SkipRows.
+    @Test
+    fun onImport_resolutionLookup_isCaseInsensitive() = runTest {
+        categoryRepository.setCategories(listOf(groceries))
+        val vm = viewModel()
+        vm.onFileLoaded(
+            csv(
+                "Date,Amount,Category,Vendor,Type,Note",
+                "2026-01-05,12.50,Groceries,Food Basics,Expense,",
+                "2026-01-06,4.25,Coffee,Blue Bottle,Expense,",
+                "2026-01-07,3.00,coffee,Second Cup,Expense,",
+            )
+        )
+        vm.onNext()
+        vm.onNext()
+        vm.onCategoryResolved("Coffee", CategoryResolution.SkipRows)
+        vm.onNext()
+
+        vm.onImport()
+
+        val batch = transactionRepository.insertedBatches.single()
+        assertEquals(listOf("Food Basics"), batch.map { it.vendor })
+        assertNull(vm.uiState.value.errorMessage)
+        assertEquals(2, vm.uiState.value.result?.categorySkipped)
+    }
+
+    // Regression: onImport captured state once and finalized with values derived from that
+    // stale snapshot; a row toggle landing while category creation was suspended used to be
+    // silently ignored by the actual import (see finding 3).
+    @Test
+    fun onImport_rowToggledWhileCategoryCreationIsInFlight_isHonoured() = runTest {
+        categoryRepository.setCategories(listOf(groceries))
+        val vm = viewModel()
+        vm.onFileLoaded(standardCsv)
+        vm.onNext()
+        vm.onNext()
+        vm.onNext()
+
+        val resumeCategoryCreation = CompletableDeferred<Unit>()
+        categoryRepository.onInsertCategory = { resumeCategoryCreation.await() }
+
+        vm.onImport()
+        // The coroutine above ran eagerly (UnconfinedTestDispatcher) up to the suspend point
+        // inside insertCategory("Coffee") and is now parked there.
+        vm.onRowToggled(3)
+        resumeCategoryCreation.complete(Unit)
+
+        val batch = transactionRepository.insertedBatches.single()
+        assertEquals(listOf("Food Basics"), batch.map { it.vendor })
+        assertEquals(1, vm.uiState.value.result?.imported)
     }
 
     @Test

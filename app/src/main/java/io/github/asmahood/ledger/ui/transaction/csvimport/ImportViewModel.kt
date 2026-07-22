@@ -107,25 +107,35 @@ class ImportViewModel @Inject constructor(
 
             val unmatchedCategories = ImportPlanner.unmatchedCategoryNames(rows, existingCategories)
             val duplicateLines = ImportPlanner.duplicateLineNumbers(rows, existingTransactions)
-            val resolutions = unmatchedCategories.associateWith { name ->
+            val defaultResolutions = unmatchedCategories.associateWith { name ->
                 CategoryResolution.CreateNew(ImportPlanner.defaultTypeFor(name, rows))
             }
-            val selectedLines = rows.filterIsInstance<ParsedRow.Valid>()
+            val defaultSelectedLines = rows.filterIsInstance<ParsedRow.Valid>()
                 .map { it.lineNumber }
                 .toSet()
 
             val nextStep = if (unmatchedCategories.isNotEmpty()) ImportStep.CATEGORIES else ImportStep.PREVIEW
 
-            _uiState.update {
-                it.copy(
-                    step = nextStep,
-                    rows = rows,
-                    existingCategories = existingCategories,
-                    unmatchedCategories = unmatchedCategories,
-                    duplicateLines = duplicateLines,
-                    resolutions = resolutions,
-                    selectedLines = selectedLines,
-                )
+            _uiState.update { current ->
+                // These results were computed from the file that was loaded when this parse
+                // started. If a different file has since been loaded (which fully replaces the
+                // state), that load already superseded this one - applying our stale results on
+                // top of it would mix rows from one file with headers/mapping from another.
+                if (current.fileName != state.fileName || current.rawRows != state.rawRows) {
+                    current
+                } else {
+                    current.copy(
+                        step = nextStep,
+                        rows = rows,
+                        existingCategories = existingCategories,
+                        unmatchedCategories = unmatchedCategories,
+                        duplicateLines = duplicateLines,
+                        // A concurrent onCategoryResolved for one of these names wins over the
+                        // freshly computed default.
+                        resolutions = defaultResolutions + current.resolutions,
+                        selectedLines = defaultSelectedLines,
+                    )
+                }
             }
         }
     }
@@ -145,34 +155,55 @@ class ImportViewModel @Inject constructor(
                     }
                 }
 
+                // Creating categories above suspends. Re-read the state now that it's done, so a
+                // row toggle or resolution change made while we were waiting isn't lost.
+                val current = _uiState.value
+                val existingById = current.existingCategories.associateBy { it.id }
+                val resolutionsByName = current.resolutions.mapKeys { it.key.lowercase() }
+
                 val lookup = mutableMapOf<String, Category>()
-                state.existingCategories.forEach { lookup[it.name.lowercase()] = it }
+                current.existingCategories.forEach { lookup[it.name.lowercase()] = it }
+                resolutionsByName.forEach { (name, resolution) ->
+                    if (resolution is CategoryResolution.UseExisting) {
+                        existingById[resolution.categoryId]?.let { lookup[name] = it }
+                    }
+                }
                 createdCategories.forEach { lookup[it.name.lowercase()] = it }
 
-                val validRows = state.rows.filterIsInstance<ParsedRow.Valid>()
+                fun resolutionFor(categoryName: String) = resolutionsByName[categoryName.lowercase()]
+
+                val validRows = current.rows.filterIsInstance<ParsedRow.Valid>()
+                val duplicateSkippedLines = current.duplicateLines - current.selectedLines
 
                 val transactions = validRows
-                    .filter { it.lineNumber in state.selectedLines }
-                    .filter { state.resolutions[it.categoryName] !is CategoryResolution.SkipRows }
-                    .map { row ->
-                        Transaction(
-                            id = 0,
-                            amount = row.amount,
-                            date = row.date,
-                            vendor = row.vendor,
-                            type = row.type,
-                            notes = row.note,
-                            category = lookup.getValue(row.categoryName.lowercase()),
-                        )
+                    .filter { it.lineNumber in current.selectedLines }
+                    .mapNotNull { row ->
+                        val category = lookup[row.categoryName.lowercase()]
+                        if (category == null || resolutionFor(row.categoryName) is CategoryResolution.SkipRows) {
+                            null
+                        } else {
+                            Transaction(
+                                id = 0,
+                                amount = row.amount,
+                                date = row.date,
+                                vendor = row.vendor,
+                                type = row.type,
+                                notes = row.note,
+                                category = category,
+                            )
+                        }
                     }
 
                 transactionRepository.insertTransactions(transactions)
 
-                val invalid = state.rows.count { it is ParsedRow.Invalid }
-                val duplicatesSkipped = state.duplicateLines.count { it !in state.selectedLines }
+                val invalid = current.rows.count { it is ParsedRow.Invalid }
+                val duplicatesSkipped = duplicateSkippedLines.size
                 val categorySkipped = validRows.count { row ->
-                    row.lineNumber in state.selectedLines &&
-                        state.resolutions[row.categoryName] is CategoryResolution.SkipRows
+                    row.lineNumber !in duplicateSkippedLines &&
+                        (
+                            resolutionFor(row.categoryName) is CategoryResolution.SkipRows ||
+                                lookup[row.categoryName.lowercase()] == null
+                            )
                 }
 
                 ImportResult(
