@@ -209,4 +209,27 @@ class OfflineTransactionRepositoryTest {
 
         assertEquals(0, rows.size)
     }
+
+    @Test
+    fun insertTransactions_persistsEveryRowInTheBatch() = runBlocking {
+        repository.insertTransactions(
+            listOf(
+                transaction(amount = 12.50, vendor = "Food Basics"),
+                transaction(amount = 4.25, vendor = "Blue Bottle"),
+            ),
+        )
+
+        val stored = repository.getAllTransactionsStream().first()
+
+        assertEquals(2, stored.size)
+        assertEquals(setOf("Food Basics", "Blue Bottle"), stored.map { it.vendor }.toSet())
+        assertEquals(groceries, stored.first().category)
+    }
+
+    @Test
+    fun insertTransactions_emptyList_writesNothing() = runBlocking {
+        repository.insertTransactions(emptyList())
+
+        assertEquals(0, repository.getAllTransactionsStream().first().size)
+    }
 }
