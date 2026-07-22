@@ -91,7 +91,7 @@
     <string name="import_step_preview">Review</string>
     <string name="import_choose_file">Choose CSV file</string>
     <string name="import_expected_format">Expected format</string>
-    <string name="import_expected_format_body">One row per transaction, with a header row. Date accepts 2026-01-31, 1/31/2026 or 2026/01/31. Amount may include a currency symbol; a leading minus or brackets means an expense. Type reads Expense/Debit or Income/Credit. Date, Amount and Category are required.</string>
+    <string name="import_expected_format_body">One row per transaction, with a header row. Date accepts 2026-01-31, 2026/01/31, 1/31/2026 or 01-31-2026. Amount may include a currency symbol; a leading minus or brackets means an expense. Type reads Expense/Debit or Income/Credit. Date, Amount and Category are required.</string>
     <string name="import_file_rows">%1$d rows found</string>
     <string name="import_column_ignore">(ignore)</string>
     <string name="import_column_required">Required</string>
