@@ -41,10 +41,17 @@ sealed interface ParsedRow {
 
 object RowParser {
 
+    /**
+     * Tried in order. Year-first patterns come first so an ISO date is never reinterpreted as
+     * month-first. Day-first (`31-12-2026`, `31/12/2026`) is deliberately absent — it cannot be
+     * told apart from month-first for days 1-12, and a silently wrong date is worse than a
+     * flagged row.
+     */
     private val dateFormats = listOf(
         DateTimeFormatter.ofPattern("uuuu-MM-dd"),
-        DateTimeFormatter.ofPattern("M/d/uuuu"),
         DateTimeFormatter.ofPattern("uuuu/MM/dd"),
+        DateTimeFormatter.ofPattern("M/d/uuuu"),
+        DateTimeFormatter.ofPattern("M-d-uuuu"),
     ).map { it.withResolverStyle(ResolverStyle.STRICT) }
 
     fun parse(row: List<String>, mapping: ColumnMapping, lineNumber: Int): ParsedRow {
