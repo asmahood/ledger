@@ -15,7 +15,7 @@ enum class OverviewPeriod(@StringRes val label: Int) {
     ALL(R.string.period_all)
 }
 
-fun OverviewPeriod.toDateRange(today: LocalDate): ClosedRange<LocalDate> {
+fun OverviewPeriod.toDateRange(today: LocalDate, earliest: LocalDate? = null): ClosedRange<LocalDate> {
     val monthStart = today.withDayOfMonth(1)
     val monthEnd = YearMonth.from(today).atEndOfMonth()
     return when (this) {
@@ -25,6 +25,6 @@ fun OverviewPeriod.toDateRange(today: LocalDate): ClosedRange<LocalDate> {
         OverviewPeriod.SIX_MONTHS -> monthStart.minusMonths(5)..monthEnd
         OverviewPeriod.LAST_YEAR -> monthStart.minusMonths(11)..monthEnd
         OverviewPeriod.YTD -> today.withDayOfYear(1)..today
-        OverviewPeriod.ALL -> LocalDate.ofEpochDay(0)..today
+        OverviewPeriod.ALL -> if (earliest != null) earliest..monthEnd else monthStart..monthEnd
     }
 }

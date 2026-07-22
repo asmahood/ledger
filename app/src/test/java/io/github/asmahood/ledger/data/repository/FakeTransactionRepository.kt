@@ -22,6 +22,8 @@ import java.time.LocalDate
  *   categories were queried via [monthlyStatsRequestedFor].
  * - Drive the monthly totals-by-type stream per [TransactionType] with [setMonthlyTotalsByType];
  *   inspect which (type, start, end) combinations were queried via [monthlyTotalsByTypeRequestedFor].
+ * - Drive the earliest transaction date — which anchors the ALL period — with
+ *   [setEarliestTransactionDate]; defaults to null, meaning an empty database.
  */
 class FakeTransactionRepository : TransactionRepository {
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
@@ -29,6 +31,7 @@ class FakeTransactionRepository : TransactionRepository {
     private val periodTotals = MutableStateFlow(PeriodTotals(income = null, expenses = null))
     private val categoryMonthlyTotals = MutableStateFlow<List<CategoryMonthSpend>>(emptyList())
     private val monthlyTotalsByType = MutableStateFlow<Map<TransactionType, List<MonthlyTotal>>>(emptyMap())
+    private val earliestDate = MutableStateFlow<LocalDate?>(null)
 
     val inserted = mutableListOf<Transaction>()
     val updated = mutableListOf<Transaction>()
@@ -61,6 +64,10 @@ class FakeTransactionRepository : TransactionRepository {
 
     fun setMonthlyTotalsByType(type: TransactionType, totals: List<MonthlyTotal>) {
         monthlyTotalsByType.value = monthlyTotalsByType.value + (type to totals)
+    }
+
+    fun setEarliestTransactionDate(date: LocalDate?) {
+        earliestDate.value = date
     }
 
     override fun getAllTransactionsStream(): Flow<List<Transaction>> =
@@ -115,4 +122,6 @@ class FakeTransactionRepository : TransactionRepository {
         return streamError?.let { error -> flow { throw error } }
             ?: monthlyTotalsByType.map { it[type].orEmpty() }
     }
+
+    override fun getEarliestTransactionDateStream(): Flow<LocalDate?> = earliestDate
 }
