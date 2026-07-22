@@ -69,4 +69,10 @@
     <string name="budget_amount_of">%1$s/%2$s</string>
     <string name="budget_percent">(%1$d%%)</string>
     <string name="budget_percent_unknown">(—)</string>
+    <string name="import_field_date">Date</string>
+    <string name="import_field_amount">Amount</string>
+    <string name="import_field_category">Category</string>
+    <string name="import_field_vendor">Vendor</string>
+    <string name="import_field_type">Type</string>
+    <string name="import_field_note">Note</string>
 </resources>
