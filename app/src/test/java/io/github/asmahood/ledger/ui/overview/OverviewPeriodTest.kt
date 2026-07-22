@@ -13,8 +13,9 @@ class OverviewPeriodTest {
         today: LocalDate,
         expectedStart: LocalDate,
         expectedEnd: LocalDate,
+        earliest: LocalDate? = null,
     ) {
-        val range = period.toDateRange(today)
+        val range = period.toDateRange(today, earliest)
         assertEquals("start", expectedStart, range.start)
         assertEquals("end", expectedEnd, range.endInclusive)
     }
@@ -68,10 +69,38 @@ class OverviewPeriodTest {
     }
 
     @Test
-    fun all_spansEpochToToday() {
+    fun all_startsAtEarliestTransaction() {
         assertRange(
             OverviewPeriod.ALL, today,
-            LocalDate.ofEpochDay(0), today,
+            LocalDate.of(2024, 3, 17), LocalDate.of(2026, 6, 30),
+            earliest = LocalDate.of(2024, 3, 17),
+        )
+    }
+
+    // With an empty database there is nothing to show; falling back to the current month keeps the
+    // range to a single month instead of stretching back to the epoch.
+    @Test
+    fun all_withNoTransactions_fallsBackToCurrentMonth() {
+        assertRange(
+            OverviewPeriod.ALL, today,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30),
+            earliest = null,
+        )
+    }
+
+    @Test
+    fun all_endsAtEndOfCurrentMonth_notToday() {
+        val range = OverviewPeriod.ALL.toDateRange(today, LocalDate.of(2024, 3, 17))
+        assertEquals(LocalDate.of(2026, 6, 30), range.endInclusive)
+    }
+
+    @Test
+    fun periodsOtherThanAll_ignoreEarliestDate() {
+        val ancient = LocalDate.of(2001, 1, 1)
+        assertRange(
+            OverviewPeriod.THREE_MONTHS, today,
+            LocalDate.of(2026, 4, 1), LocalDate.of(2026, 6, 30),
+            earliest = ancient,
         )
     }
 

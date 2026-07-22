@@ -86,4 +86,7 @@ interface TransactionDao {
         ORDER BY year, month
     """)
     fun getMonthlyTotalsByType(type: String, start: LocalDate, end: LocalDate): Flow<List<MonthlyTotal>>
+
+    @Query("SELECT MIN(date) FROM transactions")
+    fun getEarliestTransactionDate(): Flow<LocalDate?>
 }

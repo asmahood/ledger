@@ -501,4 +501,18 @@ class TransactionDaoTest {
         val rows = dao.getMonthlyTotalsByType(TransactionType.INCOME.name, quarterStart, quarterEnd).first()
         assertTrue(rows.isEmpty())
     }
+
+    @Test
+    fun getEarliestTransactionDate_withNoTransactions_emitsNull() = runBlocking {
+        assertNull(dao.getEarliestTransactionDate().first())
+    }
+
+    @Test
+    fun getEarliestTransactionDate_returnsOldestDateRegardlessOfInsertOrder() = runBlocking {
+        dao.insert(transaction(vendor = "Middle", date = LocalDate.of(2025, 8, 4)))
+        dao.insert(transaction(vendor = "Oldest", date = LocalDate.of(2024, 3, 17)))
+        dao.insert(transaction(vendor = "Newest", date = LocalDate.of(2026, 1, 2)))
+
+        assertEquals(LocalDate.of(2024, 3, 17), dao.getEarliestTransactionDate().first())
+    }
 }

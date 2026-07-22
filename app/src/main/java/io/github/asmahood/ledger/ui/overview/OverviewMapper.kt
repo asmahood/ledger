@@ -1,5 +1,7 @@
 package io.github.asmahood.ledger.ui.overview
 
+import io.github.asmahood.ledger.data.model.Category
+import io.github.asmahood.ledger.data.model.TransactionType
 import io.github.asmahood.ledger.data.projection.CategoryMonthSpend
 import io.github.asmahood.ledger.data.projection.MonthlyTotal
 import io.github.asmahood.ledger.data.projection.PeriodTotals
@@ -78,3 +80,36 @@ fun TotalIncomeChart.toTotalSavingsChart(expense: TotalExpenseChart): TotalSavin
         monthLabels = monthLabels,
         amounts = amounts.zip(expense.amounts) { earned, spent -> earned - spent }
     )
+
+fun buildBudgetSummary(
+    categories: List<Category>,
+    spend: List<CategoryMonthSpend>,
+    start: LocalDate,
+    end: LocalDate
+): BudgetSummary {
+    val monthCount = monthsInRange(start, end).size
+    val incomeCategories = categories.filter { it.type == TransactionType.INCOME }
+    val expenseCategories = categories.filter { it.type == TransactionType.EXPENSE }
+    val actualByCategory =
+        spend.groupBy { it.categoryId }.mapValues { (_, rows) -> rows.sumOf { it.total } }
+    val budgetedIncome = incomeCategories.sumOf { it.budget ?: 0.0 } * monthCount
+    val budgeted = expenseCategories.filter { it.budget != null }.sortedBy { it.name }
+        .map { category ->
+            BudgetRow.of(
+                category.name,
+                actualByCategory[category.id] ?: 0.0,
+                category.budget!! * monthCount,
+                false
+            )
+        }
+    val impliedSavings = (budgetedIncome - budgeted.sumOf { it.target }).coerceAtLeast(0.0)
+    val unbudgeted = expenseCategories.filter { it.budget == null }.sortedBy { it.name }.mapNotNull { category ->
+        val actual = actualByCategory[category.id] ?: 0.0
+        if (actual == 0.0) null
+        else BudgetRow.of(category.name, actual, impliedSavings, true)
+    }
+    val budgetedTotal = BudgetRow.of("Total", budgeted.sumOf { it.actual }, budgeted.sumOf { it.target }, false)
+    val unbudgetedTotal = BudgetRow.of("Total", unbudgeted.sumOf { it.actual }, impliedSavings, false)
+
+    return BudgetSummary(budgeted, budgetedTotal, unbudgeted, unbudgetedTotal)
+}

@@ -259,12 +259,13 @@ data class ChartColors(
     val income: Color,
     val expense: Color,
     val savings: Color,
+    val warning: Color,
 )
 
 // Fall back to the light-scheme tones rather than Color.Unspecified, so a chart still paints
 // visible bars if it is ever composed outside LedgerTheme (e.g. a preview or screenshot test).
 val LocalChartColors = staticCompositionLocalOf {
-    ChartColors(income = incomeLight, expense = expenseLight, savings = savingsLight)
+    ChartColors(income = incomeLight, expense = expenseLight, savings = savingsLight, warning = warningLight)
 }
 
 @Composable
@@ -285,9 +286,9 @@ fun LedgerTheme(
     }
 
     val chartColors = if (darkTheme) {
-        ChartColors(income = incomeDark, expense = expenseDark, savings = savingsDark)
+        ChartColors(income = incomeDark, expense = expenseDark, savings = savingsDark, warning = warningDark)
     } else {
-        ChartColors(income = incomeLight, expense = expenseLight, savings = savingsLight)
+        ChartColors(income = incomeLight, expense = expenseLight, savings = savingsLight, warning = warningLight)
     }
 
     CompositionLocalProvider(LocalChartColors provides chartColors) {
