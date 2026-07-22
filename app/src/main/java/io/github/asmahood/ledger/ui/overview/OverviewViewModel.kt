@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.asmahood.ledger.data.model.TransactionType
+import io.github.asmahood.ledger.data.repository.CategoryRepository
 import io.github.asmahood.ledger.data.repository.TransactionRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class OverviewViewModel @Inject constructor(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
     private val _selectedPeriod = MutableStateFlow(OverviewPeriod.THIS_MONTH)
     val selectedPeriod = _selectedPeriod.asStateFlow()
@@ -44,8 +46,10 @@ class OverviewViewModel @Inject constructor(
                 TransactionType.EXPENSE,
                 range.start,
                 range.endInclusive
-            )
-        ) { totals, categorySpend, totalIncome, totalExpense ->
+            ),
+            categoryRepository.getAllCategoriesStream()
+
+        ) { totals, categorySpend, totalIncome, totalExpense, categories ->
             val incomeChart = totalIncome.toTotalIncomeChart(range.start, range.endInclusive)
             val expenseChart = totalExpense.toTotalExpenseChart(range.start, range.endInclusive)
             PeriodData(
@@ -56,7 +60,13 @@ class OverviewViewModel @Inject constructor(
                 ),
                 totalIncomeChart = incomeChart,
                 totalExpenseChart = expenseChart,
-                totalSavingsChart = incomeChart.toTotalSavingsChart(expenseChart)
+                totalSavingsChart = incomeChart.toTotalSavingsChart(expenseChart),
+                budgetSummary = buildBudgetSummary(
+                    categories,
+                    categorySpend,
+                    range.start,
+                    range.endInclusive
+                )
             )
         }
     }
@@ -69,7 +79,8 @@ class OverviewViewModel @Inject constructor(
             ),
             totalIncomeChart = data.totalIncomeChart,
             totalExpenseChart = data.totalExpenseChart,
-            totalSavingsChart = data.totalSavingsChart
+            totalSavingsChart = data.totalSavingsChart,
+            budgetSummary = data.budgetSummary
         ) as OverviewUiState
     }.catch {
         emit(OverviewUiState.Error(it.message ?: "Unknown error occurred"))
@@ -85,7 +96,8 @@ class OverviewViewModel @Inject constructor(
         val categorySpendChart: CategorySpendChart,
         val totalIncomeChart: TotalIncomeChart,
         val totalExpenseChart: TotalExpenseChart,
-        val totalSavingsChart: TotalSavingsChart
+        val totalSavingsChart: TotalSavingsChart,
+        val budgetSummary: BudgetSummary,
     )
 
     fun onPeriodSelected(period: OverviewPeriod) {

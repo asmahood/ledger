@@ -67,18 +67,30 @@ class OverviewScreenTest {
         amounts = listOf(1000.0, 1000.0, 1000.0),
     )
 
+    private val sampleBudgetSummary = BudgetSummary(
+        budgeted = listOf(
+            BudgetRow.of("Groceries", 310.0, 400.0, unbudgeted = false),
+            BudgetRow.of("Restaurant", 340.0, 200.0, unbudgeted = false),
+        ),
+        budgetedTotal = BudgetRow.of("Total", 650.0, 600.0, unbudgeted = false),
+        unbudgeted = listOf(BudgetRow.of("Clothing", 310.0, 400.0, unbudgeted = true)),
+        unbudgetedTotal = BudgetRow.of("Total", 310.0, 400.0, unbudgeted = true),
+    )
+
     private fun success(
         summary: OverviewSummary = sampleSummary,
         chart: CategorySpendChart = sampleChart,
         incomeChart: TotalIncomeChart = sampleIncomeChart,
         expenseChart: TotalExpenseChart = sampleExpenseChart,
         savingsChart: TotalSavingsChart = sampleSavingsChart,
+        budgetSummary: BudgetSummary = sampleBudgetSummary,
     ) = OverviewUiState.Success(
         summary = summary,
         categorySpendChart = chart,
         totalIncomeChart = incomeChart,
         totalExpenseChart = expenseChart,
         totalSavingsChart = savingsChart,
+        budgetSummary = budgetSummary,
     )
 
     private fun setContent(
@@ -370,6 +382,26 @@ class OverviewScreenTest {
         composeTestRule.onAllNodesWithText("Categories").fetchSemanticsNodes().let { nodes ->
             assertTrue("Menu button should be hidden when there are no categories", nodes.isEmpty())
         }
+    }
+
+    // ── Spending vs Budget ────────────────────────────────────────────────────────
+
+    @Test
+    fun overviewScreen_showsBudgetSummaryCard() {
+        setContent()
+
+        composeTestRule.onNodeWithTag(BudgetSummaryTestTag).assertExists()
+        composeTestRule.onNodeWithText("Groceries").assertIsDisplayed()
+    }
+
+    // The card sits directly under the summary, but the Unbudgeted subsection can fall below the
+    // fold on a short screen, so it needs scrolling into existence first.
+    @Test
+    fun overviewScreen_budgetSummary_showsBothSubsections() {
+        setContent()
+
+        scrollListTo("Unbudgeted")
+        composeTestRule.onNodeWithText("Clothing").assertIsDisplayed()
     }
 
     // ── Loading / error states ────────────────────────────────────────────────────
