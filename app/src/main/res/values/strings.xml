@@ -75,4 +75,11 @@
     <string name="import_field_vendor">Vendor</string>
     <string name="import_field_type">Type</string>
     <string name="import_field_note">Note</string>
+    <string name="import_error_missing_date">No date</string>
+    <string name="import_error_unparseable_date">Unrecognised date format</string>
+    <string name="import_error_missing_amount">No amount</string>
+    <string name="import_error_unparseable_amount">Amount is not a number</string>
+    <string name="import_error_zero_amount">Amount is zero</string>
+    <string name="import_error_missing_category">No category</string>
+    <string name="import_error_unknown_type">Unrecognised type</string>
 </resources>
