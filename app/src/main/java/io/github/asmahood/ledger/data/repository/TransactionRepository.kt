@@ -31,6 +31,7 @@ interface TransactionRepository {
         start: LocalDate,
         end: LocalDate
     ): Flow<List<MonthlyTotal>>
+    fun getEarliestTransactionDateStream(): Flow<LocalDate?>
 }
 
 class OfflineTransactionRepository @Inject constructor(private val dao: TransactionDao) :
@@ -76,5 +77,9 @@ class OfflineTransactionRepository @Inject constructor(private val dao: Transact
         end: LocalDate
     ): Flow<List<MonthlyTotal>> {
         return dao.getMonthlyTotalsByType(type.name, start, end)
+    }
+
+    override fun getEarliestTransactionDateStream(): Flow<LocalDate?> {
+        return dao.getEarliestTransactionDate()
     }
 }
