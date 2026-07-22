@@ -4,6 +4,7 @@ import io.github.asmahood.ledger.data.model.Category
 import io.github.asmahood.ledger.data.model.Transaction
 import io.github.asmahood.ledger.data.model.TransactionType
 import java.time.LocalDate
+import java.util.Locale
 
 sealed interface CategoryResolution {
     data class UseExisting(val categoryId: Long) : CategoryResolution
@@ -52,6 +53,6 @@ object ImportPlanner {
     }
 
     fun duplicateKey(date: LocalDate, amount: Double, categoryName: String, vendor: String): String {
-        return "$date|${"%.2f".format(amount)}|${vendor.lowercase()}|${categoryName.lowercase()}"
+        return "$date|${"%.2f".format(Locale.ROOT, amount)}|${vendor.lowercase()}|${categoryName.lowercase()}"
     }
 }

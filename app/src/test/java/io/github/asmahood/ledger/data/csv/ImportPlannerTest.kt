@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Locale
 
 class ImportPlannerTest {
 
@@ -206,5 +207,17 @@ class ImportPlannerTest {
             ImportPlanner.duplicateKey(jan5, 12.50, "groceries", "food basics"),
             ImportPlanner.duplicateKey(jan5, 12.50, "Groceries", "Food Basics"),
         )
+    }
+
+    @Test
+    fun duplicateKey_usesRootLocaleForAmountFormatting() {
+        val previousLocale = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            val key = ImportPlanner.duplicateKey(jan5, 12.50, "Groceries", "Food Basics")
+            assertTrue("Key should contain dot-separated amount (12.50), not comma", key.contains("12.50"))
+        } finally {
+            Locale.setDefault(previousLocale)
+        }
     }
 }
