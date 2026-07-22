@@ -17,7 +17,7 @@ import java.time.LocalDate
  *
  * - Drive the transactions stream with [setTransactions].
  * - Make the stream fail by setting [streamError] (covers ViewModel error paths).
- * - Inspect writes via [inserted] / [updated] / [deleted].
+ * - Inspect writes via [inserted] / [updated] / [deleted]; batch writes via [insertedBatches].
  * - Drive the per-category monthly stats with [setMonthlyStats]; inspect which
  *   categories were queried via [monthlyStatsRequestedFor].
  * - Drive the monthly totals-by-type stream per [TransactionType] with [setMonthlyTotalsByType];
@@ -34,6 +34,9 @@ class FakeTransactionRepository : TransactionRepository {
     private val earliestDate = MutableStateFlow<LocalDate?>(null)
 
     val inserted = mutableListOf<Transaction>()
+
+    /** Ordered record of every [insertTransactions] call, one entry per batch. */
+    val insertedBatches = mutableListOf<List<Transaction>>()
     val updated = mutableListOf<Transaction>()
     val deleted = mutableListOf<Transaction>()
     val monthlyStatsRequestedFor = mutableListOf<Long>()
@@ -81,6 +84,13 @@ class FakeTransactionRepository : TransactionRepository {
         insertError?.let { throw it }
         inserted += transaction
         transactions.value = transactions.value + transaction
+    }
+
+    override suspend fun insertTransactions(transactions: List<Transaction>) {
+        insertError?.let { throw it }
+        insertedBatches += transactions
+        inserted += transactions
+        this.transactions.value = this.transactions.value + transactions
     }
 
     override suspend fun updateTransaction(transaction: Transaction) {
