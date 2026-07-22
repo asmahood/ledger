@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.github.asmahood.ledger.data.csv.ContentResolverCsvFileReader
+import io.github.asmahood.ledger.data.csv.CsvFileReader
 import io.github.asmahood.ledger.data.repository.CategoryRepository
 import io.github.asmahood.ledger.data.repository.OfflineCategoryRepository
 import io.github.asmahood.ledger.data.repository.OfflineTransactionRepository
@@ -20,4 +22,8 @@ abstract class RepositoryModule {
     @Singleton
     @Binds
     abstract fun bindTransactionRepository(impl: OfflineTransactionRepository): TransactionRepository
+
+    @Singleton
+    @Binds
+    abstract fun bindCsvFileReader(impl: ContentResolverCsvFileReader): CsvFileReader
 }
