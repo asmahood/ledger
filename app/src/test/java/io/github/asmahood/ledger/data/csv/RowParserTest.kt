@@ -45,6 +45,24 @@ class RowParserTest {
     }
 
     @Test
+    fun parseDate_acceptsMonthFirstDashFormat() {
+        assertEquals(LocalDate.of(2026, 1, 5), RowParser.parseDate("1-5-2026"))
+        assertEquals(LocalDate.of(2026, 1, 31), RowParser.parseDate("01-31-2026"))
+        assertEquals(LocalDate.of(2026, 12, 31), RowParser.parseDate("12-31-2026"))
+    }
+
+    // A four-digit leading field is a year, never a month, so the ISO pattern must win the race.
+    @Test
+    fun parseDate_prefersIsoOverMonthFirstForYearLeadingDates() {
+        assertEquals(LocalDate.of(2026, 1, 5), RowParser.parseDate("2026-01-05"))
+    }
+
+    @Test
+    fun parseDate_rejectsDayFirstDashFormat() {
+        assertNull(RowParser.parseDate("31-12-2026"))
+    }
+
+    @Test
     fun parseDate_trimsSurroundingWhitespace() {
         assertEquals(LocalDate.of(2026, 1, 5), RowParser.parseDate("  2026-01-05 "))
     }
