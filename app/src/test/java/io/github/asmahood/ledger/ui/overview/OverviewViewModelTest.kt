@@ -442,4 +442,26 @@ class OverviewViewModelTest {
             ),
         )
     }
+
+    @Test
+    fun overviewViewModel_allPeriod_queriesFromEarliestTransaction() = runTest {
+        repository.setPeriodTotals(PeriodTotals(income = 0.0, expenses = 0.0))
+        val earliest = LocalDate.of(2024, 3, 17)
+        repository.setEarliestTransactionDate(earliest)
+
+        val viewModel = OverviewViewModel(repository)
+
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onPeriodSelected(OverviewPeriod.ALL)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val expected = OverviewPeriod.ALL.toDateRange(LocalDate.now(), earliest)
+        assertEquals(earliest, expected.start)
+        assertTrue(
+            "Expected the ALL range to start at the earliest transaction",
+            repository.periodTotalsRequestedFor.contains(expected.start to expected.endInclusive),
+        )
+    }
 }

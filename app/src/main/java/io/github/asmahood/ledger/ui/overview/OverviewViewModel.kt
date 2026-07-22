@@ -27,8 +27,11 @@ class OverviewViewModel @Inject constructor(
     private val _hiddenCategoryIds = MutableStateFlow<Set<Long>>(emptySet())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val _periodData = selectedPeriod.flatMapLatest { period ->
-        val range = period.toDateRange(LocalDate.now())
+    private val _periodData = combine(
+        selectedPeriod,
+        transactionRepository.getEarliestTransactionDateStream()
+    ) { period, earliest -> period to earliest }.flatMapLatest { (period, earliest) ->
+        val range = period.toDateRange(LocalDate.now(), earliest)
         combine(
             transactionRepository.getPeriodTotalsStream(range.start, range.endInclusive),
             transactionRepository.getMonthlyCategoryTotalsStream(range.start, range.endInclusive),
@@ -47,7 +50,10 @@ class OverviewViewModel @Inject constructor(
             val expenseChart = totalExpense.toTotalExpenseChart(range.start, range.endInclusive)
             PeriodData(
                 summary = totals.toSummary(),
-                categorySpendChart = categorySpend.toCategorySpendChart(range.start, range.endInclusive),
+                categorySpendChart = categorySpend.toCategorySpendChart(
+                    range.start,
+                    range.endInclusive
+                ),
                 totalIncomeChart = incomeChart,
                 totalExpenseChart = expenseChart,
                 totalSavingsChart = incomeChart.toTotalSavingsChart(expenseChart)
