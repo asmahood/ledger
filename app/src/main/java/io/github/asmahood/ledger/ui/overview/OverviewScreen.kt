@@ -149,6 +149,15 @@ internal fun OverviewContent(
                 }
 
                 item {
+                    BudgetSummaryCard(
+                        summary = uiState.budgetSummary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+
+                item {
                     MonthlyTotalChartCard(
                         title = stringResource(R.string.income_over_time),
                         monthLabels = uiState.totalIncomeChart.monthLabels,
@@ -206,6 +215,17 @@ internal fun OverviewContent(
 @PreviewLightDark
 @Composable
 private fun OverviewScreenPreview() {
+    val budgeted = listOf(
+        BudgetRow.of("Groceries", 310.0, 400.0, unbudgeted = false),
+        BudgetRow.of("Restaurant", 340.0, 200.0, unbudgeted = false),
+        BudgetRow.of("Mobile", 0.0, 75.0, unbudgeted = false),
+        BudgetRow.of("Going Out", 50.0, 250.0, unbudgeted = false),
+    )
+    val unbudgeted = listOf(
+        BudgetRow.of("Clothing", 310.0, 400.0, unbudgeted = true),
+        BudgetRow.of("Electronics", 10.0, 400.0, unbudgeted = true),
+    )
+
     LedgerTheme {
         OverviewContent(
             uiState = OverviewUiState.Success(
@@ -243,6 +263,22 @@ private fun OverviewScreenPreview() {
                 totalSavingsChart = TotalSavingsChart(
                     monthLabels = listOf("Jan '26", "Feb '26", "Mar '26"),
                     amounts = listOf(1100.0, -250.0, 1000.0)
+                ),
+                budgetSummary = BudgetSummary(
+                    budgeted = budgeted,
+                    budgetedTotal = BudgetRow.of(
+                        "Total",
+                        budgeted.sumOf { it.actual },
+                        budgeted.sumOf { it.target },
+                        unbudgeted = false,
+                    ),
+                    unbudgeted = unbudgeted,
+                    unbudgetedTotal = BudgetRow.of(
+                        "Total",
+                        unbudgeted.sumOf { it.actual },
+                        400.0,
+                        unbudgeted = true,
+                    ),
                 ),
             ),
             selectedPeriod = OverviewPeriod.THIS_MONTH,

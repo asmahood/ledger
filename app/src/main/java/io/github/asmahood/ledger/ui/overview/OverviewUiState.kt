@@ -9,7 +9,8 @@ sealed interface OverviewUiState {
         val categorySpendChart: CategorySpendChart,
         val totalIncomeChart: TotalIncomeChart,
         val totalExpenseChart: TotalExpenseChart,
-        val totalSavingsChart: TotalSavingsChart
+        val totalSavingsChart: TotalSavingsChart,
+        val budgetSummary: BudgetSummary,
     ) : OverviewUiState
 
     data class Error(val message: String) : OverviewUiState
