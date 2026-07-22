@@ -323,7 +323,7 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun SummaryEyebrow(text: String, modifier: Modifier = Modifier) {
+internal fun SummaryEyebrow(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
