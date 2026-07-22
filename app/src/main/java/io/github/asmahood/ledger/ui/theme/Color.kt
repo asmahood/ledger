@@ -226,6 +226,8 @@ val expenseLight = Color(0xFFBA1A1A)
 val expenseDark = Color(0xFFFFB4AB)
 val savingsLight = Color(0xFF1565C0)
 val savingsDark = Color(0xFF90CAF9)
+val warningLight = Color(0xFFB26A00)
+val warningDark = Color(0xFFFFB951)
 
 
 
