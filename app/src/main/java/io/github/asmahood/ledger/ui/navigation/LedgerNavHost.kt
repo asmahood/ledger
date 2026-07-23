@@ -26,6 +26,7 @@ import io.github.asmahood.ledger.ui.manage.ManageScreenContent
 import io.github.asmahood.ledger.ui.manage.category.CategoryFormScreen
 import io.github.asmahood.ledger.ui.overview.OverviewScreen
 import io.github.asmahood.ledger.ui.theme.LedgerTheme
+import io.github.asmahood.ledger.ui.transaction.csvimport.ImportScreen
 import io.github.asmahood.ledger.ui.transaction.form.TransactionFormScreen
 import io.github.asmahood.ledger.ui.transaction.list.TransactionListScreen
 
@@ -44,7 +45,8 @@ fun LedgerNavHost(
         }
         composable(route = Screen.Transactions.route) {
             TransactionListScreen(
-                onTransactionClicked = { transactionId: Long -> navController.navigate("editTransaction/${transactionId}")}
+                onTransactionClicked = { transactionId: Long -> navController.navigate("editTransaction/${transactionId}") },
+                onImportClicked = { navController.navigate(Screen.ImportTransactions.route) },
             )
         }
         composable(route = Screen.Manage.route) {
@@ -76,6 +78,12 @@ fun LedgerNavHost(
             arguments = listOf(navArgument("transactionId") { type = NavType.LongType })
         ) {
             TransactionFormScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+
+        composable(route = Screen.ImportTransactions.route) {
+            ImportScreen(
                 onNavigateBack = { navController.navigateUp() }
             )
         }

@@ -29,14 +29,19 @@ data class TransactionFormUiState(
 
     val visibleCategories: List<Category>
         get() = categories.filter { it.type == type }
+    /**
+     * Trims on the way out rather than as the user types, so a space typed mid-word isn't
+     * swallowed before the next character arrives. Vendor is one quarter of the CSV import's
+     * duplicate key, where a stray edge space stops an imported row matching the stored one.
+     */
     fun toTransaction(): Transaction {
         return Transaction(
             id = id,
             amount = amount.toDouble(),
             date = LocalDate.parse(date, transactionDateFormatter),
-            vendor = vendor,
+            vendor = vendor.trim(),
             type = type,
-            notes = notes,
+            notes = notes.trim(),
             category = category!!
         )
     }
