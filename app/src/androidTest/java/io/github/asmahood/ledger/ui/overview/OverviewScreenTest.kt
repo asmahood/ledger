@@ -242,7 +242,11 @@ class OverviewScreenTest {
     fun totalExpenseChart_cardRenders() {
         setContent()
 
-        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).performScrollTo().assertIsDisplayed()
+        // The expense card sits below the fold, so in a LazyColumn it isn't composed until scrolled
+        // to — performScrollTo can't reveal a node that doesn't yet exist.
+        composeTestRule.onNodeWithTag(OverviewListTestTag)
+            .performScrollToNode(hasTestTag(TotalExpenseChartTestTag))
+        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).assertIsDisplayed()
     }
 
     @Test
@@ -258,7 +262,9 @@ class OverviewScreenTest {
             ),
         )
 
-        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag(OverviewListTestTag)
+            .performScrollToNode(hasTestTag(TotalExpenseChartTestTag))
+        composeTestRule.onNodeWithTag(TotalExpenseChartTestTag).assertIsDisplayed()
     }
 
     // ── Total savings chart (AC1, AC2, AC4) ───────────────────────────────────────
