@@ -53,7 +53,7 @@ data class ImportUiState(
      */
     fun storedCategoryNameFor(row: ParsedRow.Valid): String {
         val resolution = resolutions.entries
-            .find { it.key.equals(row.categoryName, ignoreCase = true) }
+            .find { ImportPlanner.normalizeName(it.key) == ImportPlanner.normalizeName(row.categoryName) }
             ?.value
         return when (resolution) {
             is CategoryResolution.UseExisting ->

@@ -215,6 +215,37 @@ class ImportViewModelTest {
     }
 
     @Test
+    // The app's category carries a stray trailing space; the CSV's does not. They are the same
+    // category, so the name must not reach the categories step at all, and re-imported rows must
+    // still register as duplicates.
+    fun previewStep_matchesCategoriesDifferingOnlyByWhitespace() = runTest {
+        val restaurant = Category(7, "Restaurant ", TransactionType.EXPENSE)
+        categoryRepository.setCategories(listOf(restaurant))
+        transactionRepository.setTransactions(
+            listOf(
+                Transaction(
+                    1, 13.99, LocalDate.of(2026, 1, 6), "McDonalds",
+                    TransactionType.EXPENSE, null, restaurant,
+                )
+            )
+        )
+        val vm = viewModel()
+        vm.onFileLoaded(
+            csv(
+                "Date,Amount,Category,Vendor,Type,Note",
+                "2026-01-06,13.99,Restaurant,McDonalds,Expense,",
+            )
+        )
+        vm.onNext()
+        vm.onNext()
+
+        val state = vm.uiState.value
+        assertEquals(ImportStep.PREVIEW, state.step)
+        assertTrue(state.unmatchedCategories.isEmpty())
+        assertEquals(setOf(2), state.duplicateLines)
+    }
+
+    @Test
     // Re-importing a file whose category was mapped onto an existing category with a different
     // spelling: the rows were stored under the app's name, so detection must compare against that,
     // not against the name still spelled in the CSV.
