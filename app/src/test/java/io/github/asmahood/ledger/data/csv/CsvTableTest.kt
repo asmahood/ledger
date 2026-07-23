@@ -52,7 +52,7 @@ class CsvTableTest {
     // header name, and auto-detection silently fails to match the date column.
     @Test
     fun parse_stripsByteOrderMark() {
-        val table = CsvTable.parse("﻿Date,Amount\n2026-01-05,12.50")
+        val table = CsvTable.parse("\uFEFFDate,Amount\n2026-01-05,12.50")
 
         assertEquals("Date", table.headers.first())
     }

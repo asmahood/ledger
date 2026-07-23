@@ -6,7 +6,7 @@ import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 
 data class CsvTable(val headers: List<String>, val rows: List<List<String>>) {
     companion object {
-        private const val BYTE_ORDER_MARK = "﻿"
+        private const val BYTE_ORDER_MARK = "\uFEFF"
 
         fun parse(text: String): CsvTable {
             val cleaned = text.removePrefix(BYTE_ORDER_MARK)
