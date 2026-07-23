@@ -19,13 +19,33 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "io.github.asmahood.ledger.HiltTestRunner"
     }
 
+    signingConfigs {
+        // Populated only when the keystore env vars are present (CI, or a local signed
+        // build). Without them no "release" config is created and the release build stays
+        // unsigned rather than failing, so assembleRelease remains runnable locally.
+        System.getenv("KEYSTORE_PATH")?.let { keystorePath ->
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Null when the keystore env vars are absent, which leaves the APK unsigned.
+            // release.yml re-checks this with apksigner so an unsigned APK can never ship.
+            signingConfig = signingConfigs.findByName("release")
+            // Minification stays off deliberately. This is a personal sideloaded app: no
+            // download-size pressure, no code worth obfuscating, and R8 is a common source
+            // of release-only crashes that debug-build testing never catches.
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
