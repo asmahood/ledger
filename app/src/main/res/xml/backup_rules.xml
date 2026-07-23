@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cloud backup for Android 11 and below.
+
+  The Room database is included deliberately: with CSV export (#19) still deferred,
+  cloud backup is the only recovery path if the device is lost. Room runs in WAL mode,
+  so a backup taken while the app is live is not transactionally consistent - including
+  the whole database domain covers the -wal and -shm sidecars, but a restore can still
+  land slightly behind the last write.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
 </full-backup-content>
