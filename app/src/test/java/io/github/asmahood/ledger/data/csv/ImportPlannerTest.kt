@@ -119,6 +119,32 @@ class ImportPlannerTest {
 
     // --- duplicates ---
 
+    // A CSV category mapped onto an existing category with a different spelling ("Restaurant" in
+    // the file, "Restaurants" in the app) is stored under the app's name. Keying duplicates on the
+    // CSV's spelling would make every such row invisible to detection on re-import.
+    @Test
+    fun duplicateLineNumbers_usesTheNameTheRowWillBeStoredUnder() {
+        val restaurants = category(1, "Restaurants")
+        val lines = ImportPlanner.duplicateLineNumbers(
+            rows = listOf(row(2, categoryName = "Restaurant")),
+            existing = listOf(transaction(1, restaurants)),
+            categoryNameFor = { restaurants.name },
+        )
+
+        assertEquals(setOf(2), lines)
+    }
+
+    @Test
+    fun duplicateLineNumbers_defaultsToTheCsvCategoryName() {
+        val groceries = category(1, "Groceries")
+        val lines = ImportPlanner.duplicateLineNumbers(
+            rows = listOf(row(2, categoryName = "Groceries")),
+            existing = listOf(transaction(1, groceries)),
+        )
+
+        assertEquals(setOf(2), lines)
+    }
+
     @Test
     fun duplicateLineNumbers_flagsRowsMatchingAnExistingTransaction() {
         val groceries = category(1, "Groceries")

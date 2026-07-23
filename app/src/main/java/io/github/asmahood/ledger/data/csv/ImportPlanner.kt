@@ -36,13 +36,25 @@ object ImportPlanner {
         return if (types.size == 1) types.first() else TransactionType.EXPENSE
     }
 
-    fun duplicateLineNumbers(rows: List<ParsedRow>, existing: List<Transaction>): Set<Int> {
+    /**
+     * Line numbers of rows that duplicate an existing transaction or an earlier row in the file.
+     *
+     * [categoryNameFor] returns the name a row's category will actually be *stored* under, which
+     * is not always the name spelled in the CSV: a row whose category was resolved to an existing
+     * category is stored under that category's name. Keying on the CSV's spelling instead would
+     * make every remapped row invisible to duplicate detection.
+     */
+    fun duplicateLineNumbers(
+        rows: List<ParsedRow>,
+        existing: List<Transaction>,
+        categoryNameFor: (ParsedRow.Valid) -> String = { it.categoryName },
+    ): Set<Int> {
         val validRows = rows.filterIsInstance<ParsedRow.Valid>()
         val seenKeys = existing.map { duplicateKey(it.date, it.amount, it.category.name, it.vendor) }.toMutableSet()
         val duplicates = mutableSetOf<Int>()
 
         for (row in validRows) {
-            val key = duplicateKey(row.date, row.amount, row.categoryName, row.vendor)
+            val key = duplicateKey(row.date, row.amount, categoryNameFor(row), row.vendor)
             if (key in seenKeys) {
                 duplicates.add(row.lineNumber)
             }

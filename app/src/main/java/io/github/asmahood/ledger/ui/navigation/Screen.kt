@@ -45,16 +45,25 @@ sealed class Screen(
         route = "addTransaction",
         title = R.string.add_transaction,
     )
-    
+
     data object EditTransaction : Screen(
         route = "editTransaction/{transactionId}",
         title = R.string.edit_transaction
     )
 
+    data object ImportTransactions : Screen(
+        route = "importTransactions",
+        title = R.string.import_transactions,
+    )
+
     companion object {
         val tabs: List<Screen> by lazy { listOf(Overview, Transactions, Manage) }
-        val fullScreenRoutes: Set<String> by lazy { setOf(AddCategory.route, EditCategory.route,
-            AddTransaction.route, EditTransaction.route) }
+        val fullScreenRoutes: Set<String> by lazy {
+            setOf(
+                AddCategory.route, EditCategory.route,
+                AddTransaction.route, EditTransaction.route, ImportTransactions.route
+            )
+        }
         val routesWithFAB: Set<String> by lazy { setOf(Overview.route, Transactions.route) }
     }
 }

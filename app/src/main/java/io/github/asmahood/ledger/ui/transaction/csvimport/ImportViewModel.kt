@@ -74,7 +74,11 @@ class ImportViewModel @Inject constructor(
         when (_uiState.value.step) {
             ImportStep.FILE -> _uiState.update { it.copy(step = ImportStep.COLUMNS) }
             ImportStep.COLUMNS -> parseAndPlan()
-            ImportStep.CATEGORIES -> _uiState.update { it.copy(step = ImportStep.PREVIEW) }
+            // Resolutions chosen on the categories step change which category name a row is
+            // stored under, so the duplicate set has to be rebuilt before the preview shows it.
+            ImportStep.CATEGORIES -> _uiState.update {
+                it.copy(step = ImportStep.PREVIEW, duplicateLines = it.recomputeDuplicateLines())
+            }
             ImportStep.PREVIEW, ImportStep.RESULT -> Unit
         }
     }
@@ -128,6 +132,7 @@ class ImportViewModel @Inject constructor(
                         step = nextStep,
                         rows = rows,
                         existingCategories = existingCategories,
+                        existingTransactions = existingTransactions,
                         unmatchedCategories = unmatchedCategories,
                         duplicateLines = duplicateLines,
                         // A concurrent onCategoryResolved for one of these names wins over the
