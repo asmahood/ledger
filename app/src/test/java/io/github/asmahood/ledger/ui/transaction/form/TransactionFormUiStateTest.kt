@@ -117,4 +117,25 @@ class TransactionFormUiStateTest {
     fun toTransaction_defaultId_isZero() {
         assertEquals(0L, validState().toTransaction().id)
     }
+
+    // Vendor is one quarter of the CSV import's duplicate key, so a stray edge space — invisible
+    // in the form — would stop an imported row matching the one already stored.
+    @Test
+    fun toTransaction_trimsSurroundingWhitespaceFromVendor() {
+        val transaction = validState().copy(vendor = "  Food Basics ").toTransaction()
+
+        assertEquals("Food Basics", transaction.vendor)
+    }
+
+    @Test
+    fun toTransaction_trimsSurroundingWhitespaceFromNotes() {
+        val transaction = validState().copy(notes = "  lunch  ").toTransaction()
+
+        assertEquals("lunch", transaction.notes)
+    }
+
+    @Test
+    fun isFormValid_whitespaceOnlyVendor_isNotValid() {
+        assertFalse(validState().copy(vendor = "   ").isFormValid)
+    }
 }

@@ -43,10 +43,19 @@ import io.github.asmahood.ledger.util.formatCurrency
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun TransactionListScreen(
     onTransactionClicked: (Long) -> Unit,
+    onImportClicked: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TransactionListViewModel = hiltViewModel()
 ) {
@@ -54,6 +63,7 @@ fun TransactionListScreen(
     TransactionListContent(
         uiState = uiState,
         onTransactionClicked = onTransactionClicked,
+        onImportClicked = onImportClicked,
         modifier = modifier
     )
 }
@@ -62,11 +72,35 @@ fun TransactionListScreen(
 private fun TransactionListContent(
     uiState: TransactionListUiState,
     onTransactionClicked: (Long) -> Unit,
+    onImportClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         topBar = {
-            LedgerTopBar(title = stringResource(R.string.transactions))
+            LedgerTopBar(
+                title = stringResource(R.string.transactions),
+                actions = {
+                    var menuExpanded by rememberSaveable { mutableStateOf(false) }
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            painter = painterResource(R.drawable.more_vert),
+                            contentDescription = stringResource(R.string.more_options),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.import_transactions)) },
+                            onClick = {
+                                menuExpanded = false
+                                onImportClicked()
+                            },
+                        )
+                    }
+                }
+            )
         }
     ) { contentPadding ->
         val contentModifier = modifier.padding(contentPadding)
@@ -234,7 +268,8 @@ private fun TransactionListPreview() {
                     ),
                 )
             ),
-            onTransactionClicked = {}
+            onTransactionClicked = {},
+            onImportClicked = {}
         )
     }
 }

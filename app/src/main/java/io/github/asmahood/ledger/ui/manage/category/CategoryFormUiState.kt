@@ -22,12 +22,18 @@ data class CategoryFormUiState(
         }
 }
 
+/**
+ * Trims on the way out rather than as the user types, so a space typed mid-word isn't swallowed
+ * before the next character arrives. Names are matched by value elsewhere — CSV import, the
+ * unique-name constraint — and a stray edge space is invisible in the form but makes the category
+ * a different string to every one of those comparisons.
+ */
 fun CategoryFormUiState.toCategory(): Category {
     return Category(
         id = this.id,
-        name = this.name,
+        name = this.name.trim(),
         type = this.type,
-        description = this.description.ifBlank { null },
+        description = this.description.trim().ifBlank { null },
     )
 }
 

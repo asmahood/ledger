@@ -33,6 +33,9 @@ class FakeCategoryRepository : CategoryRepository {
     var updateError: Throwable? = null
     var deleteError: Throwable? = null
 
+    /** Optional suspension point invoked at the start of [insertCategory], for races tests. */
+    var onInsertCategory: (suspend () -> Unit)? = null
+
     fun setCategories(values: List<Category>) {
         categories.value = values
     }
@@ -44,6 +47,7 @@ class FakeCategoryRepository : CategoryRepository {
         categories.map { list -> list.find { it.id == id } }
 
     override suspend fun insertCategory(category: Category): Long {
+        onInsertCategory?.invoke()
         insertError?.let { throw it }
         inserted += category
         categories.value = categories.value + category

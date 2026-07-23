@@ -18,6 +18,7 @@ interface TransactionRepository {
     fun getAllTransactionsStream(): Flow<List<Transaction>>
     fun getTransactionStream(id: Long): Flow<Transaction?>
     suspend fun insertTransaction(transaction: Transaction)
+    suspend fun insertTransactions(transactions: List<Transaction>)
     suspend fun updateTransaction(transaction: Transaction)
     suspend fun deleteTransaction(transaction: Transaction)
     fun getMonthlyAmountStatsStream(categoryId: Long): Flow<MonthlyAmountStats?>
@@ -46,6 +47,10 @@ class OfflineTransactionRepository @Inject constructor(private val dao: Transact
 
     override suspend fun insertTransaction(transaction: Transaction) {
         dao.insert(transaction.toEntity())
+    }
+
+    override suspend fun insertTransactions(transactions: List<Transaction>) {
+        dao.insertAll(transactions.map { it.toEntity() })
     }
 
     override suspend fun updateTransaction(transaction: Transaction) {
