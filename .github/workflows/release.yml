@@ -1,0 +1,71 @@
+name: Release
+
+# The release already exists when this fires - it was published from the GitHub UI,
+# which created the tag. This workflow only builds and attaches the APK.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-sign-upload:
+    name: build-sign-upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+        run: |
+          if [ -z "$KEYSTORE_FILE" ]; then
+            echo "::error::KEYSTORE_FILE secret is empty or unset"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_FILE" | base64 -d > "${{ runner.temp }}/release.jks"
+
+      - name: Build release APK
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      # The Gradle config degrades to an unsigned build when the env vars are missing, so
+      # without this check a mistyped secret would publish an APK that cannot install.
+      # AGP names the artifact app-release-unsigned.apk when no signing config applies, so
+      # an unsigned build fails here on the missing path rather than on the signature.
+      - name: Verify the APK is signed
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)"
+          "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload APK to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          cp app/build/outputs/apk/release/app-release.apk "ledger-${TAG}.apk"
+          gh release upload "$TAG" "ledger-${TAG}.apk" --clobber
+
+      - name: Remove the decoded keystore
+        if: always()
+        run: rm -f "${{ runner.temp }}/release.jks"
