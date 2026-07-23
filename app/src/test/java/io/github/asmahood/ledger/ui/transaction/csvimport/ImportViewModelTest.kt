@@ -215,6 +215,38 @@ class ImportViewModelTest {
     }
 
     @Test
+    // Re-importing a file whose category was mapped onto an existing category with a different
+    // spelling: the rows were stored under the app's name, so detection must compare against that,
+    // not against the name still spelled in the CSV.
+    fun previewStep_flagsDuplicatesOfRowsStoredUnderARemappedCategory() = runTest {
+        val restaurants = Category(3, "Restaurants", TransactionType.EXPENSE)
+        categoryRepository.setCategories(listOf(restaurants))
+        transactionRepository.setTransactions(
+            listOf(
+                Transaction(
+                    1, 13.99, LocalDate.of(2026, 1, 6), "McDonalds",
+                    TransactionType.EXPENSE, null, restaurants,
+                )
+            )
+        )
+        val vm = viewModel()
+        vm.onFileLoaded(
+            csv(
+                "Date,Amount,Category,Vendor,Type,Note",
+                "2026-01-06,13.99,Restaurant,McDonalds,Expense,",
+            )
+        )
+        vm.onNext()
+        vm.onNext()
+
+        vm.onCategoryResolved("Restaurant", CategoryResolution.UseExisting(restaurants.id))
+        vm.onNext()
+
+        assertEquals(ImportStep.PREVIEW, vm.uiState.value.step)
+        assertEquals(setOf(2), vm.uiState.value.duplicateLines)
+    }
+
+    @Test
     fun previewStep_flagsDuplicatesButLeavesThemSelected() = runTest {
         categoryRepository.setCategories(listOf(groceries))
         transactionRepository.setTransactions(
