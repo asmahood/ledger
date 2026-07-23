@@ -55,6 +55,27 @@ class ImportPlannerTest {
         assertTrue(names.isEmpty())
     }
 
+    // A category saved in the app with a stray trailing space is the same category as the CSV's
+    // spelling of it. Matching on case alone leaves it permanently unmatched, forcing the user to
+    // re-resolve it on every import.
+    @Test
+    fun unmatchedCategoryNames_ignoresSurroundingWhitespaceOnTheExistingName() {
+        val names = ImportPlanner.unmatchedCategoryNames(
+            rows = listOf(row(2, "Restaurant")),
+            existing = listOf(category(1, "Restaurant ")),
+        )
+
+        assertTrue(names.isEmpty())
+    }
+
+    @Test
+    fun duplicateKey_ignoresSurroundingWhitespace() {
+        assertEquals(
+            ImportPlanner.duplicateKey(jan5, 12.50, "Restaurant ", " Food Basics"),
+            ImportPlanner.duplicateKey(jan5, 12.50, "Restaurant", "Food Basics"),
+        )
+    }
+
     @Test
     fun unmatchedCategoryNames_deduplicates() {
         val names = ImportPlanner.unmatchedCategoryNames(

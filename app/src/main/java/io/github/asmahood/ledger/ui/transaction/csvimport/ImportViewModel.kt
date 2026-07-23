@@ -164,18 +164,18 @@ class ImportViewModel @Inject constructor(
                 // row toggle or resolution change made while we were waiting isn't lost.
                 val current = _uiState.value
                 val existingById = current.existingCategories.associateBy { it.id }
-                val resolutionsByName = current.resolutions.mapKeys { it.key.lowercase() }
+                val resolutionsByName = current.resolutions.mapKeys { ImportPlanner.normalizeName(it.key) }
 
                 val lookup = mutableMapOf<String, Category>()
-                current.existingCategories.forEach { lookup[it.name.lowercase()] = it }
+                current.existingCategories.forEach { lookup[ImportPlanner.normalizeName(it.name)] = it }
                 resolutionsByName.forEach { (name, resolution) ->
                     if (resolution is CategoryResolution.UseExisting) {
                         existingById[resolution.categoryId]?.let { lookup[name] = it }
                     }
                 }
-                createdCategories.forEach { lookup[it.name.lowercase()] = it }
+                createdCategories.forEach { lookup[ImportPlanner.normalizeName(it.name)] = it }
 
-                fun resolutionFor(categoryName: String) = resolutionsByName[categoryName.lowercase()]
+                fun resolutionFor(categoryName: String) = resolutionsByName[ImportPlanner.normalizeName(categoryName)]
 
                 val validRows = current.rows.filterIsInstance<ParsedRow.Valid>()
                 val duplicateSkippedLines = current.duplicateLines - current.selectedLines
@@ -183,7 +183,7 @@ class ImportViewModel @Inject constructor(
                 val transactions = validRows
                     .filter { it.lineNumber in current.selectedLines }
                     .mapNotNull { row ->
-                        val category = lookup[row.categoryName.lowercase()]
+                        val category = lookup[ImportPlanner.normalizeName(row.categoryName)]
                         if (category == null || resolutionFor(row.categoryName) is CategoryResolution.SkipRows) {
                             null
                         } else {

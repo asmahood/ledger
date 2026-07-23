@@ -13,20 +13,29 @@ sealed interface CategoryResolution {
 }
 
 object ImportPlanner {
+    /**
+     * Comparison form for a category or vendor name: case-folded **and trimmed**.
+     *
+     * Trimming matters as much as case here. A category saved in the app as `"Restaurant "` and a
+     * CSV cell reading `"Restaurant"` are the same category to a human, and treating them as
+     * different silently breaks both category matching and duplicate detection.
+     */
+    fun normalizeName(name: String): String = name.trim().lowercase()
+
     fun unmatchedCategoryNames(rows: List<ParsedRow>, existing: List<Category>): List<String> {
         val validRows = rows.filterIsInstance<ParsedRow.Valid>()
-        val existingLowercased = existing.map { it.name.lowercase() }.toSet()
+        val existingNormalized = existing.map { normalizeName(it.name) }.toSet()
 
         return validRows
             .map { it.categoryName }
-            .filter { it.lowercase() !in existingLowercased }
-            .distinctBy { it.lowercase() }
-            .sortedBy { it.lowercase() }
+            .filter { normalizeName(it) !in existingNormalized }
+            .distinctBy { normalizeName(it) }
+            .sortedBy { normalizeName(it) }
     }
 
     fun defaultTypeFor(name: String, rows: List<ParsedRow>): TransactionType {
         val validRows = rows.filterIsInstance<ParsedRow.Valid>()
-        val matchingRows = validRows.filter { it.categoryName.lowercase() == name.lowercase() }
+        val matchingRows = validRows.filter { normalizeName(it.categoryName) == normalizeName(name) }
 
         if (matchingRows.isEmpty()) {
             return TransactionType.EXPENSE
@@ -65,6 +74,6 @@ object ImportPlanner {
     }
 
     fun duplicateKey(date: LocalDate, amount: Double, categoryName: String, vendor: String): String {
-        return "$date|${"%.2f".format(Locale.ROOT, amount)}|${vendor.lowercase()}|${categoryName.lowercase()}"
+        return "$date|${"%.2f".format(Locale.ROOT, amount)}|${normalizeName(vendor)}|${normalizeName(categoryName)}"
     }
 }
